@@ -1,4 +1,4 @@
-#include "../include/algo_deep_first.hpp"
+#include "../include/simulateur.hpp"
 
 // PSEUDOCODE DE L'ALGORITHME DEEP-FIRST
 
