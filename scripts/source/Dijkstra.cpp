@@ -69,7 +69,7 @@ vector<int> dijkstra(
 }
 
 
-//  Reconstruction du chemin depuis les predecesseurs
+//  Reconstruction du chemin 
 
 
 vector<int> reconstruireChemin(const vector<int>& predecesseurs, int depart, int arrivee) {
