@@ -1,58 +1,36 @@
 #pragma once
 
-#include <vector>
-#include <memory>
+#include <map>
 #include <string>
-#include <climits>
+#include <vector>
 #include <chrono>
+#include <climits>
 
+#include "salle.hpp"
+#include "fourmi.hpp"
+#include "fourmiliere.hpp"
 
-class Fourmi {
-public:
-    explicit Fourmi(int id, std::string nom = "");
-    ~Fourmi() = default;
-
-    int         getId()  const;
-    std::string getNom() const;
-    int         getPos() const;
-    void        setPos(int sommet);
-
-private:
-    int         _id;
-    std::string _nom;
-    int         _posActuelle;
-};
-
-
-//  Arete — arc pondéré du graphe
-
-
-struct Arete {
-    int destination;
-    int poids;
-};
+using namespace std;
 
 
 //  ResultatDijkstra — résultat retourné par l'algorithme
-
-
 struct ResultatDijkstra {
-    std::vector<int> distances;     // distance minimale depuis depart
-    std::vector<int> predecesseurs; // pour reconstruire le chemin
-    std::vector<int> chemin;        // chemin optimal depart -> arrivee
-    long long        tempsUs;       // temps d'exécution en microsecondes
-    bool             cheminTrouve;
+    map<string, int>    distances;     // distance minimale par nom de salle
+    map<string, string> predecesseurs; // nom salle -> nom salle précédente
+    vector<Salle*>      chemin;        // chemin optimal Sv -> Sd (pointeurs non-owning)
+    long long           tempsUs;       // temps d'exécution en microsecondes
+    bool                cheminTrouve;
 };
 
 
 //  AlgorithmeDijkstra
-
 class AlgorithmeDijkstra {
 public:
-    explicit AlgorithmeDijkstra(int nbSommets);
+    // Reçoit un pointeur observateur sur la fourmilière 
+    explicit AlgorithmeDijkstra(const Fourmiliere* fourmiliere);
     ~AlgorithmeDijkstra() = default;
 
-    // Copie interdite (graphe potentiellement lourd)
+    // Copie interdite — on ne duplique pas le pointeur de fourmilière
     AlgorithmeDijkstra(const AlgorithmeDijkstra&)            = delete;
     AlgorithmeDijkstra& operator=(const AlgorithmeDijkstra&) = delete;
 
@@ -60,35 +38,26 @@ public:
     AlgorithmeDijkstra(AlgorithmeDijkstra&&)            = default;
     AlgorithmeDijkstra& operator=(AlgorithmeDijkstra&&) = default;
 
-    // ---- Construction du graphe ----
-    void ajouterArete(int source, int dest, int poids);
-    void ajouterAreteNonOrientee(int source, int dest, int poids);
-
-    // ---- Fourmis (propriété transférée via unique_ptr) ----
-    void ajouterFourmi(std::unique_ptr<Fourmi> fourmi);
-
     // ---- Exécution ----
-    // Lance Dijkstra et déplace toutes les fourmis sur le chemin optimal
-    ResultatDijkstra executer(int depart, int arrivee);
+    // Calcule le plus court chemin Sv -> Sd et déplace toutes les fourmis
+    ResultatDijkstra executer();
 
-    // ---- Accesseurs ----
-    int           nbSommets() const;
-    int           nbFourmis() const;
-    const Fourmi* getFourmi(int index) const; // pointeur observateur (non-owning)
-
-    // Affiche le résultat (noms optionnels des sommets)
-    void afficherResultat(const ResultatDijkstra& res,
-                          const std::vector<std::string>& noms = {}) const;
-
-    // Libère graphe + fourmis et vide la RAM
-    void liberer();
+    // ---- Affichage ----
+    void afficherResultat(const ResultatDijkstra& res) const;
 
 private:
-    ResultatDijkstra _dijkstra(int depart, int arrivee) const;
-    std::vector<int> _reconstruireChemin(const std::vector<int>& pred,
-                                          int depart, int arrivee) const;
+    // Algorithme pur — travaille sur les Salle* de la fourmilière
+    ResultatDijkstra    _dijkstra() const;
 
-    int                                  _nbSommets;
-    std::vector<std::vector<Arete>>      _graphe;
-    std::vector<std::unique_ptr<Fourmi>> _fourmis; // propriété exclusive
+    // Remonte le chemin depuis les prédécesseurs
+    vector<Salle*>      _reconstruireChemin(
+                            const map<string, string>& pred,
+                            Salle* depart,
+                            Salle* arrivee) const;
+
+    // Déplace chaque Fourmi* jusqu'à la destination du chemin
+    void                _deplacerFourmis(Salle* destination) const;
+
+    // Pointeur observateur — la fourmilière reste propriétaire de ses données
+    const Fourmiliere* _fourmiliere;
 };

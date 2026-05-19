@@ -1,124 +1,114 @@
-#include "Dijkstra.hpp"
+#include "../include/Dijkstra.hpp"
 
 #include <queue>
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
+#include <functional>
 
 using namespace std;
 using namespace std::chrono;
 
 
-//  Fourmi
-Fourmi::Fourmi(int id, string nom)
-    : _id(id), _nom(nom.empty() ? "f" + to_string(id) : nom), _posActuelle(-1)
-{}
-
-int         Fourmi::getId()  const { return _id; }
-string      Fourmi::getNom() const { return _nom; }
-int         Fourmi::getPos() const { return _posActuelle; }
-void        Fourmi::setPos(int sommet) { _posActuelle = sommet; }
-
-// ============================================================
-//  AlgorithmeDijkstra — construction
-// ============================================================
-
-AlgorithmeDijkstra::AlgorithmeDijkstra(int nbSommets)
-    : _nbSommets(nbSommets), _graphe(nbSommets)
-{}
-
-// ---- Graphe ----
-void AlgorithmeDijkstra::ajouterArete(int source, int dest, int poids) {
-    _graphe[source].push_back({dest, poids});
-}
-
-void AlgorithmeDijkstra::ajouterAreteNonOrientee(int source, int dest, int poids) {
-    _graphe[source].push_back({dest, poids});
-    _graphe[dest].push_back({source, poids});
-}
-
-// ---- Fourmis ----
-void AlgorithmeDijkstra::ajouterFourmi(unique_ptr<Fourmi> fourmi) {
-    _fourmis.push_back(move(fourmi));
-}
-
-int AlgorithmeDijkstra::nbSommets() const { return _nbSommets; }
-int AlgorithmeDijkstra::nbFourmis() const { return static_cast<int>(_fourmis.size()); }
-
-const Fourmi* AlgorithmeDijkstra::getFourmi(int index) const {
-    if (index < 0 || index >= (int)_fourmis.size())
-        throw out_of_range("Index fourmi invalide");
-    return _fourmis[index].get(); // pointeur observateur, pas de transfert
+//  Constructeur
+AlgorithmeDijkstra::AlgorithmeDijkstra(const Fourmiliere* fourmiliere)
+    : _fourmiliere(fourmiliere)
+{
+    if (!fourmiliere)
+        throw invalid_argument("AlgorithmeDijkstra : pointeur fourmiliere nul");
 }
 
 
-//  Libération mémoire explicite
-void AlgorithmeDijkstra::liberer() {
-    for (auto& voisins : _graphe) {
-        voisins.clear();
-        voisins.shrink_to_fit(); // rend la mémoire au système
-    }
-    _graphe.clear();
-    _graphe.shrink_to_fit();
+//  executer — point d'entrée public
+ResultatDijkstra AlgorithmeDijkstra::executer() {
+    ResultatDijkstra res = _dijkstra();
+    res.chemin = _reconstruireChemin(
+        res.predecesseurs,
+        _fourmiliere->getVestibule(),
+        _fourmiliere->getDortoir()
+    );
 
-    _fourmis.clear();            // unique_ptr -> destructeurs appelés automatiquement
-    _fourmis.shrink_to_fit();
+    if (!res.chemin.empty())
+        _deplacerFourmis(res.chemin.back());
 
-    _nbSommets = 0;
+    return res;
 }
 
 
-//  Algorithme Dijkstra (cœur)
-// Noeud interne pour la file de priorité — défini localement pour ne pas polluer le .hpp
-struct NoeudInterne {
-    int id;
-    int distance;
-    bool operator>(const NoeudInterne& o) const { return distance > o.distance; }
-};
+//  _dijkstra — algorithme pur sur les Salle* du graphe
+// Noeud interne pour la file de priorité (local à ce fichier)
+namespace {
+    struct NoeudFile {
+        Salle* salle;
+        int    distance;
+        bool operator>(const NoeudFile& o) const { return distance > o.distance; }
+    };
+}
 
-ResultatDijkstra AlgorithmeDijkstra::_dijkstra(int depart, int arrivee) const {
+ResultatDijkstra AlgorithmeDijkstra::_dijkstra() const {
     ResultatDijkstra res;
     res.cheminTrouve = false;
     res.tempsUs      = 0;
 
-    // Chrono démarré le plus tôt possible 
+    const map<string, Salle*>& salles = _fourmiliere->getSalles();
+    Salle* depart  = _fourmiliere->getVestibule();
+    Salle* arrivee = _fourmiliere->getDortoir();
+
+    if (!depart || !arrivee)
+        return res;
+
+    // ---- Chrono démarré le plus tôt possible ----
     auto debut = high_resolution_clock::now();
 
-    // Réservation groupée pour éviter les réallocations
-    res.distances.assign(_nbSommets, INT_MAX);
-    res.predecesseurs.assign(_nbSommets, -1);
-    vector<bool> visite(_nbSommets, false);
+    // Initialisation : toutes les distances à INT_MAX
+    for (const auto& [nom, salle] : salles) {
+        res.distances[nom]     = INT_MAX;
+        res.predecesseurs[nom] = "";
+    }
+    res.distances[depart->getNom()] = 0;
 
-    res.distances[depart] = 0;
-
-    priority_queue<NoeudInterne,
-                   vector<NoeudInterne>,
-                   greater<NoeudInterne>> file;
+    // Min-heap
+    priority_queue<NoeudFile,
+                   vector<NoeudFile>,
+                   greater<NoeudFile>> file;
     file.push({depart, 0});
 
+    map<string, bool> visite;
+    for (const auto& [nom, _] : salles)
+        visite[nom] = false;
+
     while (!file.empty()) {
-        NoeudInterne courant = file.top();
+        NoeudFile courant = file.top();
         file.pop();
 
-        if (visite[courant.id]) continue;
-        visite[courant.id] = true;
+        const string& nomCourant = courant.salle->getNom();
 
-        if (courant.id == arrivee) {
+        if (visite[nomCourant]) continue;
+        visite[nomCourant] = true;
+
+        // Arrivée atteinte
+        if (courant.salle == arrivee) {
             res.cheminTrouve = true;
             break;
         }
 
-        for (const Arete& arete : _graphe[courant.id]) {
-            if (visite[arete.destination]) continue;
+        // Poids = pour chaque tunel et egale a la salle ou les fourmis vont se deplacer 
+        // Remplacer par salle->getPoids() si les tunnels ont un poids variable
+        const int POIDS_TUNNEL = 1;
+
+        for (Salle* voisin : courant.salle->getVoisins()) {
+            const string& nomVoisin = voisin->getNom();
+
+            if (visite[nomVoisin]) continue;
 
             // Protection contre le débordement INT_MAX + poids
-            if (res.distances[courant.id] == INT_MAX) continue;
+            if (res.distances[nomCourant] == INT_MAX) continue;
 
-            int nouvelleDist = res.distances[courant.id] + arete.poids;//arret + poid 
-            if (nouvelleDist < res.distances[arete.destination]) {
-                res.distances[arete.destination]     = nouvelleDist;
-                res.predecesseurs[arete.destination] = courant.id;
-                file.push({arete.destination, nouvelleDist});
+            int nouvelleDist = res.distances[nomCourant] + POIDS_TUNNEL;
+            if (nouvelleDist < res.distances[nomVoisin]) {
+                res.distances[nomVoisin]     = nouvelleDist;
+                res.predecesseurs[nomVoisin] = nomCourant;
+                file.push({voisin, nouvelleDist});
             }
         }
     }
@@ -131,18 +121,33 @@ ResultatDijkstra AlgorithmeDijkstra::_dijkstra(int depart, int arrivee) const {
 }
 
 
-//  Reconstruction du chemin
-vector<int> AlgorithmeDijkstra::_reconstruireChemin(
-    const vector<int>& pred, int depart, int arrivee) const
+//  _reconstruireChemin
+vector<Salle*> AlgorithmeDijkstra::_reconstruireChemin(
+    const map<string, string>& pred,
+    Salle* depart,
+    Salle* arrivee) const
 {
-    vector<int> chemin;
-    chemin.reserve(16); // pré-alloue pour éviter les réallocations
+    vector<Salle*> chemin;
+    chemin.reserve(16);
 
-    for (int n = arrivee; n != -1; n = pred[n])
-        chemin.push_back(n);
+    const map<string, Salle*>& salles = _fourmiliere->getSalles();
+
+    // Remonte depuis l'arrivée jusqu'au départ via les prédécesseurs
+    string courant = arrivee->getNom();
+    while (!courant.empty()) {
+        auto it = salles.find(courant);
+        if (it == salles.end()) return {}; // salle introuvable
+
+        chemin.push_back(it->second);
+
+        auto itPred = pred.find(courant);
+        if (itPred == pred.end() || itPred->second.empty()) break;
+        courant = itPred->second;
+    }
 
     reverse(chemin.begin(), chemin.end());
 
+    // Vérifie que le chemin part bien du départ
     if (chemin.empty() || chemin.front() != depart)
         return {};
 
@@ -150,60 +155,54 @@ vector<int> AlgorithmeDijkstra::_reconstruireChemin(
 }
 
 
-//  executer — lance l'algo + déplace les fourmis
-
-ResultatDijkstra AlgorithmeDijkstra::executer(int depart, int arrivee) {
-    ResultatDijkstra res = _dijkstra(depart, arrivee);
-    res.chemin = _reconstruireChemin(res.predecesseurs, depart, arrivee);
-
-    if (!res.chemin.empty()) {
-        // Déplace chaque fourmi sur l'arrivée du chemin optimal
-        int destination = res.chemin.back();
-        for (auto& f : _fourmis)
-            f->setPos(destination);
-    }
-
-    return res;
+//  _deplacerFourmis — déplace chaque Fourmi* vers la destination
+void AlgorithmeDijkstra::_deplacerFourmis(Salle* destination) const {
+    for (Fourmi* f : _fourmiliere->getFourmis())
+        f->setSalle(destination); // adapte au nom exact de votre setter
 }
 
 
-//  Affichage
-void AlgorithmeDijkstra::afficherResultat(
-    const ResultatDijkstra& res,
-    const vector<string>& noms) const
-{
-    auto nomSommet = [&](int i) -> string {
-        if (i >= 0 && i < (int)noms.size()) return noms[i];
-        return to_string(i);
-    };
+//  afficherResultat
 
-    cout << "========================================\n";
+
+void AlgorithmeDijkstra::afficherResultat(const ResultatDijkstra& res) const {
+    cout << "=============================\n";
 
     if (!res.cheminTrouve || res.chemin.empty()) {
-        cout << "  Aucun chemin trouve.\n";
-        cout << "========================================\n";
+        cout << "  Aucun chemin trouve entre Sv et Sd.\n";
+        cout << "================================\n";
         return;
     }
 
-    cout << "  Distance minimale : " << res.distances[res.chemin.back()] << "\n";
-    cout << "  Chemin optimal    : ";
+    // Chemin optimal
+    cout << "  Chemin optimal : ";
     for (int i = 0; i < (int)res.chemin.size(); i++) {
-        cout << nomSommet(res.chemin[i]);
+        cout << res.chemin[i]->getNom();
         if (i < (int)res.chemin.size() - 1) cout << " -> ";
     }
     cout << "\n";
 
-    cout << "  Temps d'execution : " << res.tempsUs << " us\n";
+    // Distance totale
+    cout << "  Distance       : "
+         << res.distances.at(_fourmiliere->getDortoir()->getNom()) << "\n";
 
-    if (!_fourmis.empty()) {
-        cout << "  Fourmis arrivees  : ";
-        for (int i = 0; i < (int)_fourmis.size(); i++) {
-            cout << _fourmis[i]->getNom()
-                 << " (pos=" << nomSommet(_fourmis[i]->getPos()) << ")";
-            if (i < (int)_fourmis.size() - 1) cout << ", ";
-        }
+    // Toutes les distances depuis Sv
+    cout << "  Distances depuis Sv :\n";
+    for (const auto& [nom, dist] : res.distances) {
+        cout << "    " << nom << " : ";
+        if (dist == INT_MAX) cout << "inaccessible";
+        else                 cout << dist;
         cout << "\n";
     }
+
+    // Temps d'exécution
+    cout << "  Temps          : " << res.tempsUs << " us\n";
+
+    // Position des fourmis après déplacement
+    cout << "  Fourmis        : ";
+    for (Fourmi* f : _fourmiliere->getFourmis())
+        cout << f->getNom() << " ";
+    cout << "\n";
 
     cout << "========================================\n";
 }
