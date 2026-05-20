@@ -1,0 +1,652 @@
+========== ../../fourmilieres/fourmiliere_zero.txt ==========
+Fourmiliere : 2 fourmis, 4 salles
+  S1 [cap=1] -> Sv Sd 
+  S2 [cap=1] -> Sv Sd 
+  Sd [illimitee] -> S1 S2 
+  Sv [illimitee] -> S1 S2 
+
+===== E1 =====
+f1 - Sv - S1
+f2 - Sv - S2
+===== E2 =====
+f1 - S1 - Sd
+f2 - S2 - Sd
+
+========== ../../fourmilieres/fourmiliere_un.txt ==========
+Fourmiliere : 5 fourmis, 4 salles
+  S1 [cap=1] -> Sv S2 
+  S2 [cap=1] -> S1 Sd 
+  Sd [illimitee] -> S2 
+  Sv [illimitee] -> S1 
+
+===== E1 =====
+f1 - Sv - S1
+===== E2 =====
+f1 - S1 - S2
+f2 - Sv - S1
+===== E3 =====
+f1 - S2 - Sd
+f2 - S1 - S2
+f3 - Sv - S1
+===== E4 =====
+f2 - S2 - Sd
+f3 - S1 - S2
+f4 - Sv - S1
+===== E5 =====
+f3 - S2 - Sd
+f4 - S1 - S2
+f5 - Sv - S1
+===== E6 =====
+f4 - S2 - Sd
+f5 - S1 - S2
+===== E7 =====
+f5 - S2 - Sd
+
+========== ../../fourmilieres/fourmiliere_deux.txt ==========
+Fourmiliere : 5 fourmis, 4 salles
+  S1 [cap=1] -> Sv S2 
+  S2 [cap=1] -> S1 Sd 
+  Sd [illimitee] -> S2 Sv 
+  Sv [illimitee] -> S1 Sd 
+
+===== E1 =====
+f1 - Sv - Sd
+f2 - Sv - S1
+f3 - Sv - Sd
+f5 - Sv - Sd
+===== E2 =====
+f2 - S1 - S2
+f4 - Sv - S1
+===== E3 =====
+f2 - S2 - Sd
+f4 - S1 - S2
+===== E4 =====
+f4 - S2 - Sd
+
+========== ../../fourmilieres/fourmiliere_trois.txt ==========
+Fourmiliere : 5 fourmis, 6 salles
+  S1 [cap=1] -> Sv S2 S4 
+  S2 [cap=1] -> S1 S3 
+  S3 [cap=1] -> S2 
+  S4 [cap=1] -> Sd S1 
+  Sd [illimitee] -> S4 
+  Sv [illimitee] -> S1 
+
+===== E1 =====
+f1 - Sv - S1
+===== E2 =====
+f1 - S1 - S4
+f2 - Sv - S1
+===== E3 =====
+f1 - S4 - Sd
+f2 - S1 - S4
+f3 - Sv - S1
+===== E4 =====
+f2 - S4 - Sd
+f3 - S1 - S4
+f4 - Sv - S1
+===== E5 =====
+f3 - S4 - Sd
+f4 - S1 - S4
+f5 - Sv - S1
+===== E6 =====
+f4 - S4 - Sd
+f5 - S1 - S4
+===== E7 =====
+f5 - S4 - Sd
+
+========== ../../fourmilieres/fourmiliere_quatre.txt ==========
+Fourmiliere : 10 fourmis, 8 salles
+  S1 [cap=2] -> Sv S2 S3 
+  S2 [cap=1] -> S1 S4 
+  S3 [cap=1] -> S4 S1 
+  S4 [cap=2] -> S3 S2 S5 S6 
+  S5 [cap=1] -> S4 Sd 
+  S6 [cap=1] -> S4 Sd 
+  Sd [illimitee] -> S5 S6 
+  Sv [illimitee] -> S1 
+
+===== E1 =====
+f1 - Sv - S1
+f2 - Sv - S1
+===== E2 =====
+f1 - S1 - S2
+f3 - Sv - S1
+===== E3 =====
+f1 - S2 - S4
+f2 - S1 - S2
+f3 - S1 - S3
+f4 - Sv - S1
+f5 - Sv - S1
+===== E4 =====
+f1 - S4 - S5
+f2 - S2 - S4
+f3 - S3 - S4
+f4 - S1 - S3
+f5 - S1 - S2
+f6 - Sv - S1
+f7 - Sv - S1
+===== E5 =====
+f1 - S5 - Sd
+f2 - S4 - S6
+f3 - S4 - S5
+f4 - S3 - S4
+f5 - S2 - S4
+f6 - S1 - S2
+f7 - S1 - S3
+f8 - Sv - S1
+f9 - Sv - S1
+===== E6 =====
+f2 - S6 - Sd
+f3 - S5 - Sd
+f4 - S4 - S6
+f5 - S4 - S5
+f6 - S2 - S4
+f7 - S3 - S4
+f8 - S1 - S3
+f9 - S1 - S2
+f10 - Sv - S1
+===== E7 =====
+f4 - S6 - Sd
+f5 - S5 - Sd
+f6 - S4 - S6
+f7 - S4 - S5
+f8 - S3 - S4
+f9 - S2 - S4
+f10 - S1 - S2
+===== E8 =====
+f6 - S6 - Sd
+f7 - S5 - Sd
+f8 - S4 - S6
+f9 - S4 - S5
+f10 - S2 - S4
+===== E9 =====
+f8 - S6 - Sd
+f9 - S5 - Sd
+f10 - S4 - S6
+===== E10 =====
+f10 - S6 - Sd
+
+========== ../../fourmilieres/fourmiliere_cinq.txt ==========
+Fourmiliere : 50 fourmis, 16 salles
+  S1 [cap=8] -> S2 Sv S6 
+  S10 [cap=1] -> S7 S14 
+  S11 [cap=1] -> S8 S13 
+  S12 [cap=1] -> S8 S13 
+  S13 [cap=4] -> Sd S12 S11 
+  S14 [cap=2] -> S9 Sd S10 
+  S2 [cap=4] -> S1 S3 S5 
+  S3 [cap=2] -> S2 S4 
+  S4 [cap=4] -> S3 Sd S5 
+  S5 [cap=2] -> S2 S4 
+  S6 [cap=4] -> S7 S1 S8 
+  S7 [cap=2] -> S6 S9 S10 
+  S8 [cap=5] -> S12 S6 S11 
+  S9 [cap=1] -> S7 S14 
+  Sd [illimitee] -> S4 S13 S14 
+  Sv [illimitee] -> S1 
+
+===== E1 =====
+f1 - Sv - S1
+f2 - Sv - S1
+f3 - Sv - S1
+f4 - Sv - S1
+f5 - Sv - S1
+f6 - Sv - S1
+f7 - Sv - S1
+f8 - Sv - S1
+===== E2 =====
+f1 - S1 - S2
+f2 - S1 - S2
+f3 - S1 - S6
+f4 - S1 - S6
+f5 - S1 - S6
+f6 - S1 - S6
+f7 - S1 - S2
+f8 - S1 - S2
+f9 - Sv - S1
+f10 - Sv - S1
+f11 - Sv - S1
+f12 - Sv - S1
+f13 - Sv - S1
+f14 - Sv - S1
+f15 - Sv - S1
+f16 - Sv - S1
+===== E3 =====
+f1 - S2 - S3
+f2 - S2 - S5
+f3 - S6 - S7
+f4 - S6 - S7
+f5 - S6 - S8
+f6 - S6 - S8
+f7 - S2 - S3
+f8 - S2 - S5
+f9 - S1 - S6
+f10 - S1 - S6
+f11 - S1 - S6
+f12 - S1 - S6
+f13 - S1 - S2
+f14 - S1 - S2
+f17 - Sv - S1
+f18 - Sv - S1
+f19 - Sv - S1
+f20 - Sv - S1
+f21 - Sv - S1
+f22 - Sv - S1
+===== E4 =====
+f1 - S3 - S4
+f2 - S5 - S4
+f3 - S7 - S9
+f4 - S7 - S10
+f5 - S8 - S12
+f6 - S8 - S11
+f7 - S3 - S4
+f8 - S5 - S4
+f9 - S6 - S7
+f10 - S6 - S7
+f11 - S6 - S8
+f12 - S6 - S8
+f13 - S2 - S3
+f14 - S2 - S5
+f15 - S1 - S6
+f16 - S1 - S6
+f17 - S1 - S6
+f18 - S1 - S6
+f19 - S1 - S2
+f20 - S1 - S2
+f23 - Sv - S1
+f24 - Sv - S1
+f25 - Sv - S1
+f26 - Sv - S1
+f27 - Sv - S1
+f28 - Sv - S1
+===== E5 =====
+f1 - S4 - Sd
+f2 - S4 - Sd
+f3 - S9 - S14
+f4 - S10 - S14
+f5 - S12 - S13
+f6 - S11 - S13
+f7 - S4 - Sd
+f8 - S4 - Sd
+f9 - S7 - S9
+f10 - S7 - S10
+f11 - S8 - S12
+f12 - S8 - S11
+f13 - S3 - S4
+f14 - S5 - S4
+f15 - S6 - S7
+f16 - S6 - S7
+f17 - S6 - S8
+f18 - S6 - S8
+f19 - S2 - S3
+f20 - S2 - S5
+f21 - S1 - S6
+f22 - S1 - S6
+f23 - S1 - S6
+f24 - S1 - S6
+f25 - S1 - S2
+f26 - S1 - S2
+f29 - Sv - S1
+f30 - Sv - S1
+f31 - Sv - S1
+f32 - Sv - S1
+f33 - Sv - S1
+f34 - Sv - S1
+===== E6 =====
+f3 - S14 - Sd
+f4 - S14 - Sd
+f5 - S13 - Sd
+f6 - S13 - Sd
+f9 - S9 - S14
+f10 - S10 - S14
+f11 - S12 - S13
+f12 - S11 - S13
+f13 - S4 - Sd
+f14 - S4 - Sd
+f15 - S7 - S9
+f16 - S7 - S10
+f17 - S8 - S12
+f18 - S8 - S11
+f19 - S3 - S4
+f20 - S5 - S4
+f21 - S6 - S7
+f22 - S6 - S7
+f23 - S6 - S8
+f24 - S6 - S8
+f25 - S2 - S3
+f26 - S2 - S5
+f27 - S1 - S6
+f28 - S1 - S6
+f29 - S1 - S6
+f30 - S1 - S6
+f31 - S1 - S2
+f32 - S1 - S2
+f35 - Sv - S1
+f36 - Sv - S1
+f37 - Sv - S1
+f38 - Sv - S1
+f39 - Sv - S1
+f40 - Sv - S1
+===== E7 =====
+f9 - S14 - Sd
+f10 - S14 - Sd
+f11 - S13 - Sd
+f12 - S13 - Sd
+f15 - S9 - S14
+f16 - S10 - S14
+f17 - S12 - S13
+f18 - S11 - S13
+f19 - S4 - Sd
+f20 - S4 - Sd
+f21 - S7 - S9
+f22 - S7 - S10
+f23 - S8 - S12
+f24 - S8 - S11
+f25 - S3 - S4
+f26 - S5 - S4
+f27 - S6 - S7
+f28 - S6 - S7
+f29 - S6 - S8
+f30 - S6 - S8
+f31 - S2 - S3
+f32 - S2 - S5
+f33 - S1 - S6
+f34 - S1 - S6
+f35 - S1 - S6
+f36 - S1 - S6
+f37 - S1 - S2
+f38 - S1 - S2
+f41 - Sv - S1
+f42 - Sv - S1
+f43 - Sv - S1
+f44 - Sv - S1
+f45 - Sv - S1
+f46 - Sv - S1
+===== E8 =====
+f15 - S14 - Sd
+f16 - S14 - Sd
+f17 - S13 - Sd
+f18 - S13 - Sd
+f21 - S9 - S14
+f22 - S10 - S14
+f23 - S12 - S13
+f24 - S11 - S13
+f25 - S4 - Sd
+f26 - S4 - Sd
+f27 - S7 - S9
+f28 - S7 - S10
+f29 - S8 - S12
+f30 - S8 - S11
+f31 - S3 - S4
+f32 - S5 - S4
+f33 - S6 - S7
+f34 - S6 - S7
+f35 - S6 - S8
+f36 - S6 - S8
+f37 - S2 - S3
+f38 - S2 - S5
+f39 - S1 - S6
+f40 - S1 - S6
+f41 - S1 - S6
+f42 - S1 - S6
+f43 - S1 - S2
+f44 - S1 - S2
+f47 - Sv - S1
+f48 - Sv - S1
+f49 - Sv - S1
+f50 - Sv - S1
+===== E9 =====
+f21 - S14 - Sd
+f22 - S14 - Sd
+f23 - S13 - Sd
+f24 - S13 - Sd
+f27 - S9 - S14
+f28 - S10 - S14
+f29 - S12 - S13
+f30 - S11 - S13
+f31 - S4 - Sd
+f32 - S4 - Sd
+f33 - S7 - S9
+f34 - S7 - S10
+f35 - S8 - S12
+f36 - S8 - S11
+f37 - S3 - S4
+f38 - S5 - S4
+f39 - S6 - S7
+f40 - S6 - S7
+f41 - S6 - S8
+f42 - S6 - S8
+f43 - S2 - S3
+f44 - S2 - S5
+f45 - S1 - S6
+f46 - S1 - S6
+f47 - S1 - S6
+f48 - S1 - S6
+f49 - S1 - S2
+f50 - S1 - S2
+===== E10 =====
+f27 - S14 - Sd
+f28 - S14 - Sd
+f29 - S13 - Sd
+f30 - S13 - Sd
+f33 - S9 - S14
+f34 - S10 - S14
+f35 - S12 - S13
+f36 - S11 - S13
+f37 - S4 - Sd
+f38 - S4 - Sd
+f39 - S7 - S9
+f40 - S7 - S10
+f41 - S8 - S12
+f42 - S8 - S11
+f43 - S3 - S4
+f44 - S5 - S4
+f45 - S6 - S7
+f46 - S6 - S7
+f47 - S6 - S8
+f48 - S6 - S8
+f49 - S2 - S3
+f50 - S2 - S5
+===== E11 =====
+f33 - S14 - Sd
+f34 - S14 - Sd
+f35 - S13 - Sd
+f36 - S13 - Sd
+f39 - S9 - S14
+f40 - S10 - S14
+f41 - S12 - S13
+f42 - S11 - S13
+f43 - S4 - Sd
+f44 - S4 - Sd
+f45 - S7 - S9
+f46 - S7 - S10
+f47 - S8 - S12
+f48 - S8 - S11
+f49 - S3 - S4
+f50 - S5 - S4
+===== E12 =====
+f39 - S14 - Sd
+f40 - S14 - Sd
+f41 - S13 - Sd
+f42 - S13 - Sd
+f45 - S9 - S14
+f46 - S10 - S14
+f47 - S12 - S13
+f48 - S11 - S13
+f49 - S4 - Sd
+f50 - S4 - Sd
+===== E13 =====
+f45 - S14 - Sd
+f46 - S14 - Sd
+f47 - S13 - Sd
+f48 - S13 - Sd
+Echec du chargement : ../../fourmilieres/salle_d_at-ant.txt
+
+========== ../../fourmilieres/La_hormiguera_de_la_muerte.txt ==========
+Fourmiliere : 30 fourmis, 12 salles
+  S1 [cap=4] -> Sv S2 S3 S4 S5 S6 S7 S8 S9 
+  S10 [cap=5] -> S9 Sd 
+  S2 [cap=3] -> Sv S1 S3 S4 S5 S6 S7 S8 S9 
+  S3 [cap=2] -> Sv S1 S2 S4 S5 S6 S7 S8 S9 
+  S4 [cap=3] -> Sv S1 S2 S3 S5 S6 S7 S8 S9 
+  S5 [cap=4] -> Sv S1 S2 S3 S4 S6 S7 S8 S9 
+  S6 [cap=2] -> Sv S1 S2 S3 S4 S5 S7 S8 S9 
+  S7 [cap=2] -> Sv S1 S2 S3 S4 S5 S6 S8 S9 
+  S8 [cap=3] -> Sv S1 S2 S3 S4 S5 S6 S7 S9 
+  S9 [cap=5] -> S1 S2 S3 S4 S5 S6 S7 S8 S10 
+  Sd [illimitee] -> S10 
+  Sv [illimitee] -> S1 S2 S3 S4 S5 S6 S7 S8 
+
+===== E1 =====
+f1 - Sv - S8
+f2 - Sv - S6
+f3 - Sv - S3
+f4 - Sv - S5
+f5 - Sv - S7
+f6 - Sv - S2
+f7 - Sv - S4
+f8 - Sv - S1
+f9 - Sv - S5
+f10 - Sv - S2
+f11 - Sv - S6
+f13 - Sv - S5
+f14 - Sv - S5
+f15 - Sv - S1
+f16 - Sv - S7
+f17 - Sv - S4
+f19 - Sv - S4
+f20 - Sv - S1
+f23 - Sv - S8
+f24 - Sv - S2
+f26 - Sv - S1
+f27 - Sv - S3
+===== E2 =====
+f1 - S8 - S9
+f2 - S6 - S9
+f3 - S3 - S9
+f4 - S5 - S9
+f5 - S7 - S9
+f12 - Sv - S6
+f13 - S5 - S7
+f14 - S5 - S3
+f22 - Sv - S5
+f24 - S2 - S8
+f26 - S1 - S2
+f27 - S3 - S5
+f30 - Sv - S5
+===== E3 =====
+f1 - S9 - S10
+f2 - S9 - S10
+f3 - S9 - S10
+f4 - S9 - S10
+f5 - S9 - S10
+f6 - S2 - S9
+f7 - S4 - S9
+f8 - S1 - S9
+f9 - S5 - S2
+f10 - S2 - S1
+f11 - S6 - S4
+f12 - S6 - S2
+f13 - S7 - S9
+f14 - S3 - S9
+f15 - S1 - S3
+f16 - S7 - S1
+f18 - Sv - S6
+f19 - S4 - S7
+f20 - S1 - S4
+f23 - S8 - S6
+f25 - Sv - S7
+f30 - S5 - S8
+===== E4 =====
+f1 - S10 - Sd
+f2 - S10 - Sd
+f3 - S10 - Sd
+f4 - S10 - Sd
+f5 - S10 - Sd
+f6 - S9 - S10
+f7 - S9 - S10
+f8 - S9 - S10
+f9 - S2 - S9
+f10 - S1 - S9
+f11 - S4 - S9
+f13 - S9 - S10
+f14 - S9 - S10
+f15 - S3 - S9
+f16 - S1 - S9
+f17 - S4 - S2
+f18 - S6 - S3
+f21 - Sv - S4
+f22 - S5 - S4
+f25 - S7 - S5
+f29 - Sv - S6
+===== E5 =====
+f6 - S10 - Sd
+f7 - S10 - Sd
+f8 - S10 - Sd
+f9 - S9 - S10
+f10 - S9 - S10
+f11 - S9 - S10
+f12 - S2 - S9
+f13 - S10 - Sd
+f14 - S10 - Sd
+f15 - S9 - S10
+f16 - S9 - S10
+f17 - S2 - S9
+f18 - S3 - S9
+f19 - S7 - S9
+f20 - S4 - S9
+f28 - Sv - S2
+f29 - S6 - S5
+===== E6 =====
+f9 - S10 - Sd
+f10 - S10 - Sd
+f11 - S10 - Sd
+f12 - S9 - S10
+f15 - S10 - Sd
+f16 - S10 - Sd
+f17 - S9 - S10
+f18 - S9 - S10
+f19 - S9 - S10
+f20 - S9 - S10
+f21 - S4 - S6
+f22 - S4 - S9
+f23 - S6 - S9
+f24 - S8 - S9
+f25 - S5 - S9
+f26 - S2 - S9
+f28 - S2 - S4
+===== E7 =====
+f12 - S10 - Sd
+f17 - S10 - Sd
+f18 - S10 - Sd
+f19 - S10 - Sd
+f20 - S10 - Sd
+f22 - S9 - S10
+f23 - S9 - S10
+f24 - S9 - S10
+f25 - S9 - S10
+f26 - S9 - S10
+f27 - S5 - S9
+f28 - S4 - S9
+f29 - S5 - S9
+f30 - S8 - S9
+===== E8 =====
+f21 - S6 - S9
+f22 - S10 - Sd
+f23 - S10 - Sd
+f24 - S10 - Sd
+f25 - S10 - Sd
+f26 - S10 - Sd
+f27 - S9 - S10
+f28 - S9 - S10
+f29 - S9 - S10
+f30 - S9 - S10
+===== E9 =====
+f21 - S9 - S10
+f27 - S10 - Sd
+f28 - S10 - Sd
+f29 - S10 - Sd
+f30 - S10 - Sd
+===== E10 =====
+f21 - S10 - Sd
