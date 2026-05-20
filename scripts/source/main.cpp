@@ -37,6 +37,11 @@ void traiterToutesLesFourmilieresParDeepFirst() {
     // traiterFourmiliere("../../fourmilieres/fourmiliere_3D.txt"); CASSE MON ALGORITHME POUR L'INSTANT 
     traiterFourmiliere("../../fourmilieres/salle_d_at-ant.txt");
     traiterFourmiliere("../../fourmilieres/La_hormiguera_de_la_muerte.txt");
+
+    cout << endl;
+    cout << "=====================++++++++++++++++++++++++++++++++++++++++++++++++++++++ ===========================" << endl;
+    cout << "===================== FIN DU TRAITEMENT PAR DEEP-FIRST / ROUND ROBIN NELSON ===========================" << endl;
+    cout << "=====================++++++++++++++++++++++++++++++++++++++++++++++++++++++ ===========================" << endl;
 }
 
 int main() {
