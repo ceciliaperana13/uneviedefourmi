@@ -1,49 +1,38 @@
 #include "../include/salle.hpp"
-#include <algorithm>
 
-// Initialise la salle avec son nom, sa capacité, et zéro occupant/réservation
-Salle::Salle(const string& nom, int capacite)
-    : nom(nom), capacite(capacite), occupants(0), reserves(0) {}
+class Salle {
+public:
+    static constexpr int CAPACITE_ILLIMITEE = -1;
 
-// Ajoute un voisin uniquement s'il n'est pas déjà enregistré (évite les doublons)
-void Salle::ajouterVoisin(Salle* voisin) {
-    if (!estConnecteA(voisin))
-        voisins.push_back(voisin);
-}
+    Salle(const string& nom, int capacite = 1);
 
-// Un slot est libre si ni occupé ni réservé pour l'étape en cours
-bool Salle::peutAccueillir() const {
-    if (capacite == CAPACITE_ILLIMITEE) return true;
-    return (occupants + reserves) < capacite;
-}
+    void ajouterVoisin(Salle* voisin);
+    bool peutAccueillir() const;
+    bool estConnecteA(const Salle* autre) const;
 
-bool Salle::estConnecteA(const Salle* autre) const {
-    return find(voisins.begin(), voisins.end(), autre) != voisins.end();
-}
+    // Phase de planification
+    void reserver();          // une fourmi va entrer
+    void liberer();           // annule une réservation d'entrée
+    void programmerDepart();  // une fourmi va partir
+    void annulerDepart();     // annule un départ prévu
 
-// --- Gestion des réservations (phase de planification d'une étape) ---
+    // Phase de commit
+    void entrer();  // la fourmi entre physiquement (consomme une réservation)
+    void sortir();  // la fourmi part physiquement (consomme un départ prévu)
 
-// Réserve un slot : bloque la place avant que la fourmi ne soit physiquement entrée
-void Salle::reserver() { reserves++; }
+    bool estVestibule() const;
+    bool estDortoir() const;
 
-// Annule une réservation (si le déplacement est finalement impossible)
-void Salle::liberer() { if (reserves > 0) reserves--; }
+    const string& getNom() const;
+    int getCapacite() const;
+    int getOccupants() const;
+    const vector<Salle*>& getVoisins() const;
 
-// --- Gestion des occupants (phase de commit d'une étape) ---
-
-// Marque l'entrée physique d'une fourmi et consomme sa réservation
-void Salle::entrer() {
-    occupants++;
-    if (reserves > 0) reserves--;
-}
-
-// Marque le départ physique d'une fourmi
-void Salle::sortir() { if (occupants > 0) occupants--; }
-
-bool Salle::estVestibule() const { return nom == "Sv"; }
-bool Salle::estDortoir()   const { return nom == "Sd"; }
-
-const string&          Salle::getNom()       const { return nom; }
-int                    Salle::getCapacite()  const { return capacite; }
-int                    Salle::getOccupants() const { return occupants; }
-const vector<Salle*>&  Salle::getVoisins()   const { return voisins; }
+private:
+    string nom;
+    int capacite;
+    int occupants;  // fourmis physiquement présentes
+    int reserves;   // fourmis qui vont entrer (planifié)
+    int partants;   // fourmis qui vont partir (planifié)
+    vector<Salle*> voisins;
+};
