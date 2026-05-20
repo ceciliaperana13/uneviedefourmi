@@ -25,6 +25,7 @@ AlgorithmeDijkstra::AlgorithmeDijkstra(const Fourmiliere* fourmiliere)
 
 ResultatDijkstra AlgorithmeDijkstra::executer() {
     ResultatDijkstra res = _dijkstra();
+    res.nbTours = 0;
 
     res.chemin = _reconstruireChemin(
         res.predecesseurs,
@@ -33,7 +34,7 @@ ResultatDijkstra AlgorithmeDijkstra::executer() {
     );
 
     if (!res.chemin.empty())
-        _deplacerFourmis(res.chemin.back());
+        res.nbTours = _deplacerFourmis(res.chemin);
 
     return res;
 }
@@ -54,6 +55,7 @@ ResultatDijkstra AlgorithmeDijkstra::_dijkstra() const {
     ResultatDijkstra res;
     res.cheminTrouve = false;
     res.tempsUs      = 0;
+    res.nbTours      = 0;
 
     const map<string, Salle*>& salles = _fourmiliere->getSalles();
     Salle* depart  = _fourmiliere->getVestibule();
@@ -61,10 +63,8 @@ ResultatDijkstra AlgorithmeDijkstra::_dijkstra() const {
 
     if (!depart || !arrivee) return res;
 
-    // ---- Chrono ----
     auto debut = high_resolution_clock::now();
 
-    // Initialisation distances à INT_MAX
     for (const auto& [nom, salle] : salles) {
         res.distances[nom]     = INT_MAX;
         res.predecesseurs[nom] = "";
@@ -93,7 +93,6 @@ ResultatDijkstra AlgorithmeDijkstra::_dijkstra() const {
             break;
         }
 
-        // Poids = 1 par tunnel
         const int POIDS = 1;
 
         for (Salle* voisin : courant.salle->getVoisins()) {
@@ -151,16 +150,73 @@ vector<Salle*> AlgorithmeDijkstra::_reconstruireChemin(
 
 // ============================================================
 //  _deplacerFourmis
-//  Utilise le système deux phases de Fourmi :
-//    1. planifierDeplacement() — réserve la place
-//    2. commitDeplacement()    — effectue le mouvement
+//
+//  Simule le déplacement des fourmis tour par tour le long
+//  du chemin optimal trouvé par Dijkstra.
+//
+//  Chaque tour :
+//    - On parcourt le chemin DE LA FIN VERS LE DÉBUT
+//      (pipeline) pour éviter qu'une fourmi avance deux
+//      fois dans le même tour.
+//    - Phase 1 : planifierDeplacement() pour toutes les
+//      fourmis éligibles (respecte les capacités).
+//    - Phase 2 : commitDeplacement() pour valider.
+//
+//  On boucle jusqu'à ce que toutes les fourmis soient
+//  au dortoir, ou qu'aucun déplacement ne soit possible
+//  (cas bloqué — sécurité anti boucle infinie).
 // ============================================================
 
-void AlgorithmeDijkstra::_deplacerFourmis(Salle* destination) const {
-    for (Fourmi* f : _fourmiliere->getFourmis()) {
-        if (f->planifierDeplacement(destination))
+int AlgorithmeDijkstra::_deplacerFourmis(const vector<Salle*>& chemin) const {
+    const vector<Fourmi*>& fourmis = _fourmiliere->getFourmis();
+    Salle* dortoir = chemin.back();
+    int nbFourmis  = (int)fourmis.size();
+    int tour       = 0;
+
+    auto nbAuDortoir = [&]() {
+        int n = 0;
+        for (const Fourmi* f : fourmis)
+            if (f->getSalleActuelle() == dortoir) n++;
+        return n;
+    };
+
+    while (nbAuDortoir() < nbFourmis) {
+        tour++;
+        bool auMoinsUn = false;
+
+        cout << "  Tour " << tour << " : ";
+
+        // ---- Phase 1 : planification (fin -> début du chemin) ----
+        for (int etape = (int)chemin.size() - 1; etape >= 1; etape--) {
+            Salle* source = chemin[etape - 1];
+            Salle* dest   = chemin[etape];
+
+            for (Fourmi* f : fourmis) {
+                if (f->getSalleActuelle() == source) {
+                    if (f->planifierDeplacement(dest)) {
+                        cout << "f" << f->getId()
+                             << "(" << source->getNom()
+                             << "->" << dest->getNom() << ") ";
+                        auMoinsUn = true;
+                    }
+                }
+            }
+        }
+
+        // ---- Phase 2 : commit ----
+        for (Fourmi* f : fourmis)
             f->commitDeplacement();
+
+        cout << "\n";
+
+        // Sécurité : si rien n'a bougé, on est bloqué
+        if (!auMoinsUn) {
+            cout << "  [WARN] Aucun deplacement possible — simulation bloquee.\n";
+            break;
+        }
     }
+
+    return tour;
 }
 
 // ============================================================
@@ -199,11 +255,14 @@ void AlgorithmeDijkstra::afficherResultat(const ResultatDijkstra& res) const {
         cout << "\n";
     }
 
+    // Nombre de tours
+    cout << "  Tours simulés  : " << res.nbTours << "\n";
+
     // Temps d'exécution de l'algo pur
     cout << "  Temps algo     : " << res.tempsUs << " us\n";
 
-    // État des fourmis
-    cout << "  Fourmis (id -> salle) :\n";
+    // État final des fourmis
+    cout << "  Fourmis (id -> salle finale) :\n";
     for (const Fourmi* f : _fourmiliere->getFourmis()) {
         cout << "    f" << f->getId()
              << " -> " << f->getSalleActuelle()->getNom() << "\n";
