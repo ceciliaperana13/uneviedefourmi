@@ -1,4 +1,5 @@
 
+#include "../include/main.hpp"
 #include "../include/fourmiliere.hpp"
 #include "../include/Dijkstra.hpp"
 #include <iostream>
@@ -33,10 +34,13 @@ static void traiterDeepFirst(const string& chemin) {
         cerr << "Echec du chargement : " << chemin << endl;
         return;
     }
+
     cout << "\n========== " << chemin << " ==========" << endl;
+    // Affiche une représentation schématique de la fourmilière
     fourmiliere.afficher();
     cout << endl;
 
+    // Résoud la fourmilière et affiche les étapes 
     Simulateur simulateur(fourmiliere);
     simulateur.simuler();
 }

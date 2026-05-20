@@ -1,5 +1,4 @@
 #include "../include/fourmiliere.hpp"
-#include <iostream>
 
 // Initialise le nombre de fourmis à zéro et crée les salles obligatoires
 Fourmiliere::Fourmiliere() : nbFourmis(0) {
@@ -8,16 +7,16 @@ Fourmiliere::Fourmiliere() : nbFourmis(0) {
 
 // Libère toutes les salles et fourmis allouées dynamiquement
 Fourmiliere::~Fourmiliere() {
-    for (auto& [nom, salle] : salles) delete salle;
-    for (Fourmi* f : fourmis)         delete f;
+    for (auto it = salles.begin(); it != salles.end(); ++it)
+        delete it->second;
+    for (int i = 0; i < (int)fourmis.size(); i++)
+        delete fourmis[i];
 }
 
 // Délègue la lecture au LecteurFichierTexte, puis construit le graphe
 bool Fourmiliere::chargerDepuisFichier(const string& chemin) {
     DonneesFourmiliere donnees = LecteurFichierTexte::lire(chemin);
-
     if (donnees.nbFourmis == 0) return false;
-
     construireDepuisDonnees(donnees);
     return true;
 }
@@ -26,11 +25,11 @@ bool Fourmiliere::chargerDepuisFichier(const string& chemin) {
 void Fourmiliere::construireDepuisDonnees(const DonneesFourmiliere& donnees) {
     nbFourmis = donnees.nbFourmis;
 
-    for (const auto& [nom, capacite] : donnees.salles)
-        ajouterSalle(nom, capacite);
+    for (int i = 0; i < (int)donnees.salles.size(); i++)
+        ajouterSalle(donnees.salles[i].first, donnees.salles[i].second);
 
-    for (const auto& [nomA, nomB] : donnees.tunnels)
-        ajouterTunnel(nomA, nomB);
+    for (int i = 0; i < (int)donnees.tunnels.size(); i++)
+        ajouterTunnel(donnees.tunnels[i].first, donnees.tunnels[i].second);
 
     initialiserFourmis();
 }
@@ -71,21 +70,20 @@ Salle* Fourmiliere::getOuCreerSalle(const string& nom, int capacite) {
 // Affiche la structure de la fourmilière : salles, capacités et voisins
 void Fourmiliere::afficher() const {
     cout << "Fourmiliere : " << nbFourmis << " fourmis, "
-              << salles.size() << " salles" << endl;
+         << salles.size() << " salles" << endl;
 
-    for (const auto& [nom, salle] : salles) {
-        cout << "  " << nom;
+    for (auto it = salles.begin(); it != salles.end(); ++it) {
+        Salle* salle = it->second;
+        cout << "  " << it->first;
 
         if (salle->getCapacite() == Salle::CAPACITE_ILLIMITEE)
             cout << " [illimitee]";
         else
             cout << " [cap=" << salle->getCapacite() << "]";
 
-        // Liste des salles accessibles depuis celle-ci
         cout << " -> ";
-        for (const Salle* v : salle->getVoisins())
-            cout << v->getNom() << " ";
-
+        for (int i = 0; i < (int)salle->getVoisins().size(); i++)
+            cout << salle->getVoisins()[i]->getNom() << " ";
         cout << endl;
     }
 }
@@ -101,4 +99,4 @@ Salle* Fourmiliere::getDortoir()   const { return getSalle("Sd"); }
 int    Fourmiliere::getNbFourmis() const { return nbFourmis; }
 
 const map<string, Salle*>& Fourmiliere::getSalles()  const { return salles; }
-const vector<Fourmi*>&          Fourmiliere::getFourmis() const { return fourmis; }
+const vector<Fourmi*>&     Fourmiliere::getFourmis() const { return fourmis; }

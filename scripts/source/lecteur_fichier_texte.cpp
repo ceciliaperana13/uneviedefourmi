@@ -69,7 +69,7 @@ void LecteurFichierTexte::parseLigneTunnel(const string& ligne, DonneesFourmilie
 
 // Détecte une ligne de type "f=N"
 bool LecteurFichierTexte::estLigneNbFourmis(const string& ligne) {
-    return ligne.size() >= 2 && ligne.substr(0, 2) == "f=";
+    return ligne.size() >= 2 && (ligne.substr(0, 2) == "f=" || ligne.substr(0, 2) == "F=");
 }
 
 // Détecte une ligne de tunnel via la présence de " - "

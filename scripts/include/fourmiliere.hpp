@@ -2,6 +2,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <iostream>
 #include "fourmi.hpp"
 #include "lecteur_fichier_texte.hpp"
 #include "salle.hpp"
