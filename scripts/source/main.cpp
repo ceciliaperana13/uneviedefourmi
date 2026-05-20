@@ -1,15 +1,19 @@
+
 #include "../include/fourmiliere.hpp"
 #include "../include/Dijkstra.hpp"
 #include <iostream>
 #include <vector>
 #include <string>
 #include <chrono>
+#include <limits>
 
 using namespace std;
 using namespace std::chrono;
 
+const string BASE = "../../fourmilieres/";
+
 // ============================================================
-//  Affiche un séparateur lisible
+//  Utilitaires d'affichage
 // ============================================================
 static void separateur(const string& titre) {
     cout << "\n";
@@ -21,12 +25,50 @@ static void separateur(const string& titre) {
 }
 
 // ============================================================
-//  Traite une fourmilière : charge, lance Dijkstra, affiche
+//  ALGORITHME 1 — Deep First + Round Robin Nelson
 // ============================================================
-static void traiterFourmiliere(const string& chemin, const string& label) {
+static void traiterDeepFirst(const string& chemin) {
+    Fourmiliere fourmiliere;
+    if (!fourmiliere.chargerDepuisFichier(chemin)) {
+        cerr << "Echec du chargement : " << chemin << endl;
+        return;
+    }
+    cout << "\n========== " << chemin << " ==========" << endl;
+    fourmiliere.afficher();
+    cout << endl;
+
+    Simulateur simulateur(fourmiliere);
+    simulateur.simuler();
+}
+
+static void lancerDeepFirst() {
+    cout << "\n";
+    cout << "============================= ++++++++++++++++++++++++++++++++++++++++ ================================\n";
+    cout << "============================= PAR DEEP FIRST + ALGO ROUND ROBIN NELSON ================================\n";
+    cout << "============================= ++++++++++++++++++++++++++++++++++++++++ ================================\n";
+
+    traiterDeepFirst(BASE + "fourmiliere_zero.txt");
+    traiterDeepFirst(BASE + "fourmiliere_un.txt");
+    traiterDeepFirst(BASE + "fourmiliere_deux.txt");
+    traiterDeepFirst(BASE + "fourmiliere_trois.txt");
+    traiterDeepFirst(BASE + "fourmiliere_quatre.txt");
+    traiterDeepFirst(BASE + "fourmiliere_cinq.txt");
+    // traiterDeepFirst(BASE + "fourmiliere_3D.txt"); // CASSE L'ALGO POUR L'INSTANT
+    traiterDeepFirst(BASE + "salle_d_at-ant.txt");
+    traiterDeepFirst(BASE + "La_hormiguera_de_la_muerte.txt");
+
+    cout << "\n";
+    cout << "=====================++++++++++++++++++++++++++++++++++++++++++++++++++++++ ===========================\n";
+    cout << "===================== FIN DU TRAITEMENT PAR DEEP-FIRST / ROUND ROBIN NELSON ===========================\n";
+    cout << "=====================++++++++++++++++++++++++++++++++++++++++++++++++++++++ ===========================\n";
+}
+
+// ============================================================
+//  ALGORITHME 2 — Dijkstra
+// ============================================================
+static void traiterDijkstra(const string& chemin, const string& label) {
     separateur(label);
 
-    // --- Chargement ---
     Fourmiliere fm;
     if (!fm.chargerDepuisFichier(chemin)) {
         cerr << "  [ERREUR] Impossible de charger : " << chemin << "\n";
@@ -34,62 +76,98 @@ static void traiterFourmiliere(const string& chemin, const string& label) {
     }
     fm.afficher();
 
-    // --- Dijkstra ---
     auto debut = high_resolution_clock::now();
 
     AlgorithmeDijkstra algo(&fm);
     ResultatDijkstra   res = algo.executer();
 
-    auto fin    = high_resolution_clock::now();
+    auto fin     = high_resolution_clock::now();
     long long us = duration_cast<microseconds>(fin - debut).count();
 
-    // --- Résultat ---
     algo.afficherResultat(res);
     cout << "  [PERF] Temps total (chargement + algo) : " << us << " us\n";
 
     if (!res.cheminTrouve) {
-        cout << "  [INFO] Aucun chemin Sv -> Sd trouvé.\n";
+        cout << "  [INFO] Aucun chemin Sv -> Sd trouve.\n";
         return;
     }
 
-    // --- Vérification : toutes les fourmis au dortoir ? ---
-    const Salle* dortoir = fm.getDortoir();
-    int nbArrivees = 0;
-    for (const Fourmi* f : fm.getFourmis()) {
+    const Salle* dortoir   = fm.getDortoir();
+    int          nbArrivee = 0;
+    for (const Fourmi* f : fm.getFourmis())
         if (f->getSalleActuelle() == dortoir)
-            nbArrivees++;
-    }
+            nbArrivee++;
+
     cout << "  [INFO] Fourmis au dortoir : "
-         << nbArrivees << " / " << fm.getNbFourmis() << "\n";
+         << nbArrivee << " / " << fm.getNbFourmis() << "\n";
 }
 
-// ============================================================
-//  Main — 5 fourmilières + fourmilière zéro
-// ============================================================
-int main() {
-    cout << "================================================\n";
+static void lancerDijkstra() {
+    cout << "\n================================================\n";
     cout << "   SIMULATION DES FOURMILIERES — DIJKSTRA      \n";
     cout << "================================================\n";
 
-    // Chemin correct depuis scripts/source/
-    const string BASE = "../../fourmileres/";
-
-    const vector<pair<string,string>> fourmilieres = {
-        { BASE + "fourmiliere_zero.txt",  "Fourmiliere 0 (exemple de base)" },
-        { BASE + "fourmiliere_un.txt",    "Fourmiliere 1"                   },
-        { BASE + "fourmiliere_deux.txt",  "Fourmiliere 2"                   },
-        { BASE + "fourmiliere_trois.txt", "Fourmiliere 3"                   },
-        { BASE + "fourmiliere_quatre.txt","Fourmiliere 4"                   },
-        { BASE + "fourmiliere_cinq.txt",  "Fourmiliere 5"                   },
-        { BASE + "La_hormiguera_de_la_muerte.txt", "La Hormiguera de la Muerte"    }
+    const vector<pair<string, string>> fourmilieres = {
+        { BASE + "fourmiliere_zero.txt",           "Fourmiliere 0 (exemple de base)" },
+        { BASE + "fourmiliere_un.txt",             "Fourmiliere 1"                   },
+        { BASE + "fourmiliere_deux.txt",           "Fourmiliere 2"                   },
+        { BASE + "fourmiliere_trois.txt",          "Fourmiliere 3"                   },
+        { BASE + "fourmiliere_quatre.txt",         "Fourmiliere 4"                   },
+        { BASE + "fourmiliere_cinq.txt",           "Fourmiliere 5"                   },
+        { BASE + "salle_d_at-ant.txt",             "Salle d'at-ant"                  },
+        { BASE + "La_hormiguera_de_la_muerte.txt", "La Hormiguera de la Muerte"      },
     };
 
     for (const auto& [chemin, label] : fourmilieres)
-        traiterFourmiliere(chemin, label);
+        traiterDijkstra(chemin, label);
 
     cout << "\n================================================\n";
-    cout << "   FIN DE SIMULATION\n";
+    cout << "   FIN DE SIMULATION — DIJKSTRA\n";
     cout << "================================================\n";
+}
+
+// ============================================================
+//  Menu interactif
+// ============================================================
+static void afficherMenu() {
+    cout << "\n";
+    cout << "╔══════════════════════════════════════════════╗\n";
+    cout << "║        SIMULATION DE FOURMILIERES            ║\n";
+    cout << "╠══════════════════════════════════════════════╣\n";
+    cout << "║  1  —  Deep First + Round Robin Nelson       ║\n";
+    cout << "║  2  —  Dijkstra                              ║\n";
+    cout << "║  0  —  Quitter                               ║\n";
+    cout << "╚══════════════════════════════════════════════╝\n";
+    cout << "  Votre choix : ";
+}
+
+// ============================================================
+//  Main
+// ============================================================
+int main() {
+    // Deep First tourne automatiquement au démarrage
+    lancerDeepFirst();
+
+    int choix = -1;
+    while (choix != 0) {
+        afficherMenu();
+
+        // Lecture robuste : rejette tout ce qui n'est pas un entier
+        if (!(cin >> choix)) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "  [ERREUR] Entree invalide, veuillez saisir 0, 1 ou 2.\n";
+            continue;
+        }
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+        switch (choix) {
+            case 1:  lancerDeepFirst(); break;
+            case 2:  lancerDijkstra();  break;
+            case 0:  cout << "\n  Au revoir !\n\n"; break;
+            default: cout << "  [ERREUR] Choix invalide, veuillez saisir 0, 1 ou 2.\n"; break;
+        }
+    }
 
     return 0;
 }
