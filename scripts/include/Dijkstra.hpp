@@ -12,25 +12,29 @@
 
 using namespace std;
 
+// ============================================================
+//  ResultatDijkstra
+// ============================================================
 
-//  ResultatDijkstra — résultat retourné par l'algorithme
 struct ResultatDijkstra {
     map<string, int>    distances;     // distance minimale par nom de salle
-    map<string, string> predecesseurs; // nom salle -> nom salle précédente
-    vector<Salle*>      chemin;        // chemin optimal Sv -> Sd (pointeurs non-owning)
-    long long           tempsUs;       // temps d'exécution en microsecondes
+    map<string, string> predecesseurs; // nom -> nom prédécesseur
+    vector<Salle*>      chemin;        // chemin Sv -> Sd (pointeurs non-owning)
+    long long           tempsUs;       // durée de l'algo en microsecondes
     bool                cheminTrouve;
 };
 
-
+// ============================================================
 //  AlgorithmeDijkstra
+// ============================================================
+
 class AlgorithmeDijkstra {
 public:
-    // Reçoit un pointeur observateur sur la fourmilière 
+    // Pointeur observateur — la Fourmiliere reste propriétaire de ses données
     explicit AlgorithmeDijkstra(const Fourmiliere* fourmiliere);
     ~AlgorithmeDijkstra() = default;
 
-    // Copie interdite — on ne duplique pas le pointeur de fourmilière
+    // Copie interdite
     AlgorithmeDijkstra(const AlgorithmeDijkstra&)            = delete;
     AlgorithmeDijkstra& operator=(const AlgorithmeDijkstra&) = delete;
 
@@ -38,26 +42,22 @@ public:
     AlgorithmeDijkstra(AlgorithmeDijkstra&&)            = default;
     AlgorithmeDijkstra& operator=(AlgorithmeDijkstra&&) = default;
 
-    // ---- Exécution ----
-    // Calcule le plus court chemin Sv -> Sd et déplace toutes les fourmis
+    // Lance Dijkstra et déplace toutes les fourmis via seDeplacer()
     ResultatDijkstra executer();
 
-    // ---- Affichage ----
+    // Affiche chemin, distances, temps et position des fourmis
     void afficherResultat(const ResultatDijkstra& res) const;
 
 private:
-    // Algorithme pur — travaille sur les Salle* de la fourmilière
-    ResultatDijkstra    _dijkstra() const;
+    ResultatDijkstra _dijkstra() const;
 
-    // Remonte le chemin depuis les prédécesseurs
-    vector<Salle*>      _reconstruireChemin(
-                            const map<string, string>& pred,
-                            Salle* depart,
-                            Salle* arrivee) const;
+    vector<Salle*>   _reconstruireChemin(
+                         const map<string, string>& pred,
+                         Salle* depart,
+                         Salle* arrivee) const;
 
-    // Déplace chaque Fourmi* jusqu'à la destination du chemin
-    void                _deplacerFourmis(Salle* destination) const;
+    // Appelle f->seDeplacer(destination) pour chaque fourmi
+    void             _deplacerFourmis(Salle* destination) const;
 
-    // Pointeur observateur — la fourmilière reste propriétaire de ses données
-    const Fourmiliere* _fourmiliere;
+    const Fourmiliere* _fourmiliere; // non-owning
 };
