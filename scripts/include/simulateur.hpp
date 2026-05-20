@@ -2,6 +2,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <iostream>
 #include "algo_deep_first.hpp"
 #include "fourmi.hpp"
 #include "fourmiliere.hpp"
