@@ -17,7 +17,12 @@ void traiterFourmiliere(const string& chemin) {
     simulateur.simuler();
 }
 
-int main() {
+void traiterToutesLesFourmilieresParDeepFirst() {
+
+    cout << "===================++++++++++++++++++++++++++++++++++++++++++======================" << endl;
+    cout << "=================== PAR DEEP FIRST + ALGO ROUND ROBIN NELSON ======================" << endl;
+    cout << "===================++++++++++++++++++++++++++++++++++++++++++======================" << endl;
+
     traiterFourmiliere("../../fourmilieres/fourmiliere_zero.txt");
     traiterFourmiliere("../../fourmilieres/fourmiliere_un.txt");
     traiterFourmiliere("../../fourmilieres/fourmiliere_deux.txt");
@@ -28,6 +33,10 @@ int main() {
     // traiterFourmiliere("../../fourmilieres/fourmiliere_3D.txt");
     traiterFourmiliere("../../fourmilieres/salle_d_at-ant.txt");
     traiterFourmiliere("../../fourmilieres/La_hormiguera_de_la_muerte.txt");
+}
 
+int main() {
+
+    traiterToutesLesFourmilieresParDeepFirst(); 
     return 0;
 }
