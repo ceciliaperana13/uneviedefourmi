@@ -22,9 +22,10 @@ void traiterFourmiliere(const string& chemin) {
 
 void traiterToutesLesFourmilieresParDeepFirst() {
 
-    cout << "===================++++++++++++++++++++++++++++++++++++++++++======================" << endl;
-    cout << "=================== PAR DEEP FIRST + ALGO ROUND ROBIN NELSON ======================" << endl;
-    cout << "===================++++++++++++++++++++++++++++++++++++++++++======================" << endl;
+    cout << endl;
+    cout << "============================= ++++++++++++++++++++++++++++++++++++++++ ================================" << endl;
+    cout << "============================= PAR DEEP FIRST + ALGO ROUND ROBIN NELSON ================================" << endl;
+    cout << "============================= ++++++++++++++++++++++++++++++++++++++++ ================================" << endl;
 
     traiterFourmiliere("../../fourmilieres/fourmiliere_zero.txt");
     traiterFourmiliere("../../fourmilieres/fourmiliere_un.txt");
