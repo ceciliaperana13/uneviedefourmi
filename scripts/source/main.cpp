@@ -64,16 +64,15 @@ static void traiterFourmiliere(const string& chemin, const string& label) {
 }
 
 // ============================================================
-//  Main — 5 fourmilières + fourmilière zéro (exemple de base)
+//  Main — 5 fourmilières + fourmilière zéro
 // ============================================================
 int main() {
     cout << "================================================\n";
     cout << "   SIMULATION DES FOURMILIERES — DIJKSTRA      \n";
     cout << "================================================\n";
 
-    // Chemin relatif depuis le répertoire d'exécution (scripts/)
-    // Adaptez si vous lancez depuis la racine du projet
-    const string BASE = "../fourmilieres/";
+    // Chemin correct depuis scripts/source/
+    const string BASE = "../../fourmileres/";
 
     const vector<pair<string,string>> fourmilieres = {
         { BASE + "fourmiliere_zero.txt",  "Fourmiliere 0 (exemple de base)" },
@@ -82,6 +81,7 @@ int main() {
         { BASE + "fourmiliere_trois.txt", "Fourmiliere 3"                   },
         { BASE + "fourmiliere_quatre.txt","Fourmiliere 4"                   },
         { BASE + "fourmiliere_cinq.txt",  "Fourmiliere 5"                   },
+        { BASE + "La_hormiguera_de_la_muerte.txt", "La Hormiguera de la Muerte"    }
     };
 
     for (const auto& [chemin, label] : fourmilieres)

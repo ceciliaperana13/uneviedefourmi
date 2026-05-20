@@ -8,9 +8,9 @@
 using namespace std;
 using namespace std::chrono;
 
-// ============================================================
+// ==============
 //  Constructeur
-// ============================================================
+// ==============
 
 AlgorithmeDijkstra::AlgorithmeDijkstra(const Fourmiliere* fourmiliere)
     : _fourmiliere(fourmiliere)
@@ -19,9 +19,9 @@ AlgorithmeDijkstra::AlgorithmeDijkstra(const Fourmiliere* fourmiliere)
         throw invalid_argument("AlgorithmeDijkstra : pointeur fourmiliere nul");
 }
 
-// ============================================================
+// ====================================
 //  executer — point d'entrée public
-// ============================================================
+// ====================================
 
 ResultatDijkstra AlgorithmeDijkstra::executer() {
     ResultatDijkstra res = _dijkstra();
@@ -38,9 +38,9 @@ ResultatDijkstra AlgorithmeDijkstra::executer() {
     return res;
 }
 
-// ============================================================
+// ==============================
 //  _dijkstra — algorithme pur
-// ============================================================
+// =============================
 
 namespace {
     struct NoeudFile {
