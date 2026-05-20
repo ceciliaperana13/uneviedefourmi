@@ -1,5 +1,4 @@
 #include "../include/fourmiliere.hpp"
-#include <iostream>
 
 // Initialise le nombre de fourmis à zéro et crée les salles obligatoires
 Fourmiliere::Fourmiliere() : nbFourmis(0) {
