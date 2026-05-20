@@ -40,7 +40,7 @@ ResultatDijkstra AlgorithmeDijkstra::executer() {
 
 // ==============================
 //  _dijkstra — algorithme pur
-// =============================
+// ==============================
 
 namespace {
     struct NoeudFile {
@@ -93,7 +93,7 @@ ResultatDijkstra AlgorithmeDijkstra::_dijkstra() const {
             break;
         }
 
-        // Poids = 1 par tunnel (traversée instantanée selon les règles)
+        // Poids = 1 par tunnel
         const int POIDS = 1;
 
         for (Salle* voisin : courant.salle->getVoisins()) {
@@ -110,7 +110,7 @@ ResultatDijkstra AlgorithmeDijkstra::_dijkstra() const {
         }
     }
 
-    auto fin   = high_resolution_clock::now();
+    auto fin    = high_resolution_clock::now();
     res.tempsUs = duration_cast<microseconds>(fin - debut).count();
 
     return res;
@@ -151,13 +151,16 @@ vector<Salle*> AlgorithmeDijkstra::_reconstruireChemin(
 
 // ============================================================
 //  _deplacerFourmis
-//  Fourmi::seDeplacer(Salle*) est la seule méthode de déplacement
-//  disponible — on l'utilise directement
+//  Utilise le système deux phases de Fourmi :
+//    1. planifierDeplacement() — réserve la place
+//    2. commitDeplacement()    — effectue le mouvement
 // ============================================================
 
 void AlgorithmeDijkstra::_deplacerFourmis(Salle* destination) const {
-    for (Fourmi* f : _fourmiliere->getFourmis())
-        f->seDeplacer(destination);
+    for (Fourmi* f : _fourmiliere->getFourmis()) {
+        if (f->planifierDeplacement(destination))
+            f->commitDeplacement();
+    }
 }
 
 // ============================================================
@@ -199,7 +202,7 @@ void AlgorithmeDijkstra::afficherResultat(const ResultatDijkstra& res) const {
     // Temps d'exécution de l'algo pur
     cout << "  Temps algo     : " << res.tempsUs << " us\n";
 
-    // État des fourmis — getId() est la seule info disponible
+    // État des fourmis
     cout << "  Fourmis (id -> salle) :\n";
     for (const Fourmi* f : _fourmiliere->getFourmis()) {
         cout << "    f" << f->getId()
