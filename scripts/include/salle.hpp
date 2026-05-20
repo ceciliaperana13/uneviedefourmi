@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <algorithm>
 
 using namespace std;
 
@@ -14,11 +15,15 @@ public:
     bool peutAccueillir() const;
     bool estConnecteA(const Salle* autre) const;
 
-    // Pouvoir réserver des espaces pour l'étape suivante! 
-    void reserver();
-    void liberer();
-    void entrer();
-    void sortir();
+    // Phase de planification
+    void reserver();          // une fourmi va entrer
+    void liberer();           // annule une réservation d'entrée
+    void programmerDepart();  // une fourmi va partir
+    void annulerDepart();     // annule un départ prévu
+
+    // Phase de commit
+    void entrer();  // la fourmi entre physiquement (consomme une réservation)
+    void sortir();  // la fourmi part physiquement (consomme un départ prévu)
 
     bool estVestibule() const;
     bool estDortoir() const;
@@ -31,7 +36,8 @@ public:
 private:
     string nom;
     int capacite;
-    int occupants;   // Fourmis à l'interieur à une étape N
-    int reserves;    // Emplacements réservés pour l'étape N + 1 
+    int occupants;  // fourmis physiquement présentes
+    int reserves;   // fourmis qui vont entrer (planifié)
+    int partants;   // fourmis qui vont partir (planifié)
     vector<Salle*> voisins;
 };
