@@ -25,5 +25,9 @@ int main() {
     traiterFourmiliere("../../fourmilieres/fourmiliere_quatre.txt");
     traiterFourmiliere("../../fourmilieres/fourmiliere_cinq.txt");
 
+    // traiterFourmiliere("../../fourmilieres/fourmiliere_3D.txt");
+    traiterFourmiliere("../../fourmilieres/salle_d_at-ant.txt");
+    traiterFourmiliere("../../fourmilieres/La_hormiguera_de_la_muerte.txt");
+
     return 0;
 }
