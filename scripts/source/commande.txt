@@ -2,8 +2,8 @@ gcc main.cpp salle.cpp fourmi.cpp fourmiliere.cpp lecteur_fichier_texte.cpp algo
 
 //pour SFML
 
-g++ -std=c++17 -O2 main.cpp Visualiseur.cpp Dijkstra.cpp fourmiliere.cpp fourmi.cpp salle.cpp lecteur_fichier_texte.cpp simulateur.cpp algo_deep_first.cpp -I ../include -I C:/SFML-2.6.1/include -L C:/SFML-2.6.1/lib -lsfml-graphics -lsfml-window -lsfml-system -o fourmiliere_viz.exe
+g++ -std=c++17 -O2 main.cpp menu_principal.cpp Visualiseur.cpp Dijkstra.cpp fourmiliere.cpp fourmi.cpp salle.cpp lecteur_fichier_texte.cpp simulateur.cpp algo_deep_first.cpp -I ../include -I C:/SFML-2.6.1/include -L C:/SFML-2.6.1/lib -lsfml-graphics -lsfml-window -lsfml-system -o fourmiliere_viz.exe
 
 // Pour Nelson : 
 
-C:\mingw13\bin\g++.exe -std=c++17 -O2 main.cpp Visualiseur.cpp Dijkstra.cpp fourmiliere.cpp fourmi.cpp salle.cpp lecteur_fichier_texte.cpp simulateur.cpp algo_deep_first.cpp -I ../include -I C:/SFML-2.6.1-mingw/include -L C:/SFML-2.6.1-mingw/lib -lsfml-graphics -lsfml-window -lsfml-system -o fourmiliere_viz.exe
+C:\mingw13\bin\g++.exe -std=c++17 -O2 main.cpp menu_principal.cpp Visualiseur.cpp Dijkstra.cpp fourmiliere.cpp fourmi.cpp salle.cpp lecteur_fichier_texte.cpp simulateur.cpp algo_deep_first.cpp -I ../include -I C:/SFML-2.6.1-mingw/include -L C:/SFML-2.6.1-mingw/lib -lsfml-graphics -lsfml-window -lsfml-system -o fourmiliere_viz.exe
