@@ -1,0 +1,3 @@
+# SFML DLLs - chaque dev utilise les siennes (dépendent du compilateur)
+scripts/source/*.dll
+scripts/source/*.exe
