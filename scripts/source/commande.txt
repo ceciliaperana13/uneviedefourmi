@@ -1,1 +1,5 @@
 gcc main.cpp salle.cpp fourmi.cpp fourmiliere.cpp lecteur_fichier_texte.cpp algo_deep_first.cpp simulateur.cpp -I../include -o uneviedefourmi -Wall -Wextra -lstdc++ 
+
+//pour SFML
+
+g++ -std=c++17 -O2 main.cpp Visualiseur.cpp Dijkstra.cpp fourmiliere.cpp fourmi.cpp salle.cpp lecteur_fichier_texte.cpp simulateur.cpp algo_deep_first.cpp -I ../include -I C:/SFML-2.6.1/include -L C:/SFML-2.6.1/lib -lsfml-graphics -lsfml-window -lsfml-system -o fourmiliere_viz.exe

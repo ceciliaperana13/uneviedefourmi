@@ -141,6 +141,8 @@ static void lancerVisualiseur() {
         BASE + "fourmiliere_trois.txt",
         BASE + "fourmiliere_quatre.txt",
         BASE + "fourmiliere_cinq.txt",
+        BASE + "salle_d_at-ant.txt",
+        BASE + "La_hormiguera_de_la_muerte.txt",
     };
 
     Visualiseur vis(1280, 800);
@@ -158,8 +160,8 @@ static void afficherMenu() {
     cout << "║        SIMULATION DE FOURMILIERES            ║\n";
     cout << "╠══════════════════════════════════════════════╣\n";
     cout << "║  1  —  Deep First + Round Robin Nelson       ║\n";
-    cout << "║  2  —  Dijkstra (terminal)                   ║\n";
-    cout << "║  3  —  Dijkstra (fenetre graphique SFML)     ║\n";
+    cout << "║  2  —  Dijkstra                              ║\n";
+    cout << "║  3  —  Dijkstra (interface)     ║\n";
     cout << "║  0  —  Quitter                               ║\n";
     cout << "╚══════════════════════════════════════════════╝\n";
     cout << "  Votre choix : ";
