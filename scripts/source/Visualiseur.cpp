@@ -31,9 +31,9 @@ Visualiseur::Visualiseur(unsigned int largeur, unsigned int hauteur)
         if (_police.loadFromFile(p)) break;
 }
 
-// ============================================================
+// ===========
 //  run
-// ============================================================
+// ============
 void Visualiseur::run(const vector<string>& fichiers) {
     _fichiers = fichiers;
     _indexFm  = 0;
@@ -229,9 +229,9 @@ sf::Color Visualiseur::couleurFourmi(int id) const {
     return PALETTE[(id - 1) % NB_COULEURS];
 }
 
-// ============================================================
-//  Dessiner tunnels  (jaune = chemin Dijkstra, gris = autre)
-// ============================================================
+// ==================
+//  Dessiner tunnels  
+// ==================
 void Visualiseur::dessinerTunnels() {
     const auto& chemin = _resDijkstra.chemin;
     for (const auto& kv : _fm->getSalles()) {
@@ -459,7 +459,7 @@ string Visualiseur::nomFourmiliere(int i) const {
     static const vector<string> noms = {
         "Fourmiliere 0","Fourmiliere 1","Fourmiliere 2",
         "Fourmiliere 3","Fourmiliere 4","Fourmiliere 5",
-        "Salle d'at-ant","La Hormiguera"
+        "Salle d'at-ant","La Hormiguera","fourmiliere 3D"
     };
     return (i>=0 && i<(int)noms.size()) ? noms[i] : "Fourmiliere "+to_string(i);
 }

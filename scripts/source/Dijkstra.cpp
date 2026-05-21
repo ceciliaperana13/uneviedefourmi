@@ -92,6 +92,7 @@ ResultatDijkstra AlgorithmeDijkstra::_dijkstra() const {
             res.cheminTrouve = true;
             break;
         }
+        //poids pour tunelle 1 mais pour les salle on dois renmplir la capacité 
 
         const int POIDS = 1;
 
