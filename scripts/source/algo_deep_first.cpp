@@ -1,19 +1,21 @@
 #include "../include/algo_deep_first.hpp"
 #include <algorithm>
+#include <queue>
 
 // Point d'entrée public.
-// Initialise le chemin courant avec Sv, lance le DFS, puis trie les résultats
-// par longueur croissante pour que le Simulateur priorise les chemins courts.
+// Calcule d'abord les distances BFS depuis Sd, puis lance le DFS filtré,
+// puis trie les résultats par longueur croissante.
 std::vector<std::vector<Salle*>> AlgoDeepFirst::trouverTousLesChemins(const Fourmiliere& fourmiliere) {
     std::vector<std::vector<Salle*>> resultats;
-    std::vector<Salle*> cheminCourant;
+    std::vector<Salle*>              cheminCourant;
 
     Salle* depart      = fourmiliere.getVestibule();
     Salle* destination = fourmiliere.getDortoir();
 
-    // On part du vestibule : il est toujours le premier noeud de chaque chemin
+    std::map<std::string, int> distancesVersSd = calculerDistancesVersSd(fourmiliere);
+
     cheminCourant.push_back(depart);
-    explorer(depart, destination, cheminCourant, resultats);
+    explorer(depart, depart, destination, cheminCourant, resultats, distancesVersSd);
 
     // Tri par longueur : les fourmis assignées aux chemins courts avancent plus vite,
     // ce qui maximise le débit global du pipeline
@@ -25,37 +27,75 @@ std::vector<std::vector<Salle*>> AlgoDeepFirst::trouverTousLesChemins(const Four
     return resultats;
 }
 
-// Principe : on descend aussi profond que possible dans le graphe avant de
-// remonter et d'essayer un autre voisin.
-// cheminCourant est passé par référence et modifié à chaque appel :
-// resultats accumule les chemins complets trouvés au fil de la récursion.
+// BFS depuis Sd sur le graphe non orienté.
+// La distance obtenue est le nombre minimal de tunnels pour atteindre Sd.
+std::map<std::string, int> AlgoDeepFirst::calculerDistancesVersSd(const Fourmiliere& fourmiliere) {
+    std::map<std::string, int> distances;
+    const std::map<std::string, Salle*>& salles = fourmiliere.getSalles();
+
+    for (const auto& kv : salles)
+        distances[kv.first] = INT_MAX;
+
+    Salle* sd = fourmiliere.getDortoir();
+    distances[sd->getNom()] = 0;
+
+    std::queue<Salle*> file;
+    file.push(sd);
+
+    while (!file.empty()) {
+        Salle* courante = file.front();
+        file.pop();
+
+        for (Salle* voisin : courante->getVoisins()) {
+            if (distances[voisin->getNom()] == INT_MAX) {
+                distances[voisin->getNom()] = distances[courante->getNom()] + 1;
+                file.push(voisin);
+            }
+        }
+    }
+
+    return distances;
+}
+
+// Principe : on descend aussi profond que possible avant de remonter (backtrack).
+//
+// Filtre de distance :
+//   - Depuis Sv (depart) : tous les voisins sont autorisés.
+//     Sv et certains de ses voisins (ex: S1) peuvent être à égale distance de Sd.
+//     Bloquer ces voisins priverait le DFS de branches entières de chemins utiles.
+//   - Depuis toute autre salle : on rejette les voisins à distance >= distance courante.
+//     Cela empêche les mouvements latéraux (ex: S3↔S5, même distance) qui causent
+//     des deadlocks circulaires quand des fourmis se croisent dans des salles à
+//     capacité limitée.
 void AlgoDeepFirst::explorer(
     Salle*                            courante,
+    Salle*                            depart,
     Salle*                            destination,
     std::vector<Salle*>&              cheminCourant,
-    std::vector<std::vector<Salle*>>& resultats)
+    std::vector<std::vector<Salle*>>& resultats,
+    const std::map<std::string, int>& distancesVersSd)
 {
-    // Cas de base : on a atteint le dortoir donc le chemin courant est complet, on l'enregistre
     if (courante == destination) {
         resultats.push_back(cheminCourant);
         return;
     }
 
-    // On tente d'explorer chaque voisin de la salle courante
-    for (Salle* voisin : courante->getVoisins()) {
+    int distanceCourante = distancesVersSd.at(courante->getNom());
 
-        // On refuse de revisiter une salle déjà présente dans le chemin courant.
+    for (Salle* voisin : courante->getVoisins()) {
         bool dejaVisite = std::find(cheminCourant.begin(), cheminCourant.end(), voisin)
                           != cheminCourant.end();
         if (dejaVisite) continue;
 
-        // Descente : on ajoute ce voisin au chemin et on explore depuis lui
-        cheminCourant.push_back(voisin);
-        explorer(voisin, destination, cheminCourant, resultats);
+        // Depuis Sv, on ne filtre pas : on veut explorer toutes les branches de départ.
+        // Depuis les autres salles, on exige une progression stricte vers Sd.
+        if (courante != depart) {
+            int distanceVoisin = distancesVersSd.at(voisin->getNom());
+            if (distanceVoisin >= distanceCourante) continue;
+        }
 
-        // Backtrack : on retire ce voisin pour explorer les autres branches
-        // Sans cette ligne, les prochains chemins contiendraient les noeuds
-        // des branches déjà explorées
+        cheminCourant.push_back(voisin);
+        explorer(voisin, depart, destination, cheminCourant, resultats, distancesVersSd);
         cheminCourant.pop_back();
     }
 }
