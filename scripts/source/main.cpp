@@ -161,7 +161,7 @@ static void afficherMenu() {
     cout << "╠══════════════════════════════════════════════╣\n";
     cout << "║  1  —  Deep First + Round Robin Nelson       ║\n";
     cout << "║  2  —  Dijkstra                              ║\n";
-    cout << "║  3  —  Dijkstra (interface)     ║\n";
+    cout << "║  3  —  Dijkstra+deep interface               ║\n";
     cout << "║  0  —  Quitter                               ║\n";
     cout << "╚══════════════════════════════════════════════╝\n";
     cout << "  Votre choix : ";
