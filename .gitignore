@@ -10,3 +10,5 @@ scripts/source/sfml-system-2.dll
 scripts/source/sfml-system-d-2.dll
 scripts/source/sfml-window-2.dll
 scripts/source/sfml-window-d-2.dll
+
+scripts/source/*.exe
