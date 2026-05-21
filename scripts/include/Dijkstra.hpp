@@ -19,7 +19,7 @@ using namespace std;
 struct ResultatDijkstra {
     map<string, int>    distances;     // distance minimale par nom de salle
     map<string, string> predecesseurs; // nom -> nom prédécesseur
-    vector<Salle*>      chemin;        // chemin Sv -> Sd (pointeurs non-owning)
+    vector<Salle*>      chemin;        // chemin Sv -> Sd 
     long long           tempsUs;       // durée de l'algo en microsecondes
     int                 nbTours;       // nombre de tours pour tout déplacer
     bool                cheminTrouve;

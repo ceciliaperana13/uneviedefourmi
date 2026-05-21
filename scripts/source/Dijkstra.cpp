@@ -153,18 +153,6 @@ vector<Salle*> AlgorithmeDijkstra::_reconstruireChemin(
 //
 //  Simule le déplacement des fourmis tour par tour le long
 //  du chemin optimal trouvé par Dijkstra.
-//
-//  Chaque tour :
-//    - On parcourt le chemin DE LA FIN VERS LE DÉBUT
-//      (pipeline) pour éviter qu'une fourmi avance deux
-//      fois dans le même tour.
-//    - Phase 1 : planifierDeplacement() pour toutes les
-//      fourmis éligibles (respecte les capacités).
-//    - Phase 2 : commitDeplacement() pour valider.
-//
-//  On boucle jusqu'à ce que toutes les fourmis soient
-//  au dortoir, ou qu'aucun déplacement ne soit possible
-//  (cas bloqué — sécurité anti boucle infinie).
 // ============================================================
 
 int AlgorithmeDijkstra::_deplacerFourmis(const vector<Salle*>& chemin) const {
@@ -186,7 +174,7 @@ int AlgorithmeDijkstra::_deplacerFourmis(const vector<Salle*>& chemin) const {
 
         cout << "  Tour " << tour << " : ";
 
-        // ---- Phase 1 : planification (fin -> début du chemin) ----
+        //  Phase 1 : planification (fin -> début du chemin) ----
         for (int etape = (int)chemin.size() - 1; etape >= 1; etape--) {
             Salle* source = chemin[etape - 1];
             Salle* dest   = chemin[etape];
@@ -203,7 +191,7 @@ int AlgorithmeDijkstra::_deplacerFourmis(const vector<Salle*>& chemin) const {
             }
         }
 
-        // ---- Phase 2 : commit ----
+        //  Phase 2 : commit 
         for (Fourmi* f : fourmis)
             f->commitDeplacement();
 
