@@ -1,1 +1,1 @@
-gcc main.cpp salle.cpp fourmi.cpp fourmiliere.cpp lecteur_fichier_texte.cpp algo_deep_first.cpp simulateur.cpp -I../include -o uneviedefourmi -Wall -Wextra -lstdc++ 
+gcc *.cpp -o uneviedefourmi -lstdc++ -Wall -Wextra -std=c++17
