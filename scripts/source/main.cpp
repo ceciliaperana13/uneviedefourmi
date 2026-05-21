@@ -51,7 +51,7 @@ static string choisirFourmiliere() {
 }
 
 // ============================================================
-//  Deep First
+//  1 — Deep First + Round Robin Nelson (terminal)
 // ============================================================
 static void lancerDeepFirst() {
     string fichier = choisirFourmiliere();
@@ -70,7 +70,7 @@ static void lancerDeepFirst() {
 }
 
 // ============================================================
-//  Dijkstra
+//  2 — Dijkstra (terminal)
 // ============================================================
 static void lancerDijkstra() {
     string fichier = choisirFourmiliere();
@@ -91,30 +91,15 @@ static void lancerDijkstra() {
 }
 
 // ============================================================
-//  Visualiseur SFML
+//  3 — Visualiseur SFML (interface graphique)
 // ============================================================
 static void lancerVisualiseur() {
     string fichier = choisirFourmiliere();
     if (fichier.empty()) return;
 
-    // Charger la fourmilière
-    Fourmiliere fm;
-    if (!fm.chargerDepuisFichier(fichier)) {
-        cerr << "[ERREUR] Impossible de charger " << fichier << endl;
-        return;
-    }
-
-    // Lancer Deep‑First pour obtenir les étapes
-    Simulateur sim(fm);
-    sim.simuler();
-
-    // Visualiseur
     Visualiseur vis(1280, 800);
-
-  
-
-    // Lancer l'affichage
-    vis.run(LISTE_FOURMILIERES);
+    // On passe seulement le fichier choisi au visualiseur
+    vis.run({ fichier });
 }
 
 // ============================================================
