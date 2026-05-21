@@ -265,10 +265,12 @@ void Visualiseur::dessinerTunnels() {
         for (const Salle* v : kv.second->getVoisins()) {
             sf::Vector2f pB = positionSalle(v->getNom());
             sf::Color col(80, 80, 100);
-            for (int i = 0; i+1 < (int)chemin.size(); i++) {
-                bool ab = chemin[i]->getNom()   == kv.first   && chemin[i+1]->getNom() == v->getNom();
-                bool ba = chemin[i]->getNom()   == v->getNom() && chemin[i+1]->getNom() == kv.first;
-                if (ab || ba) { col = sf::Color(255,210,50); break; }
+            if (_mode == ModeAnimation::DIJKSTRA) {
+                for (int i = 0; i+1 < (int)chemin.size(); i++) {
+                    bool ab = chemin[i]->getNom() == kv.first    && chemin[i+1]->getNom() == v->getNom();
+                    bool ba = chemin[i]->getNom() == v->getNom() && chemin[i+1]->getNom() == kv.first;
+                    if (ab || ba) { col = sf::Color(255,210,50); break; }
+                }
             }
             sf::Vertex ligne[] = { sf::Vertex(pA, col), sf::Vertex(pB, col) };
             _fenetre.draw(ligne, 2, sf::Lines);
@@ -288,7 +290,8 @@ void Visualiseur::dessinerSalles() {
         sf::Vector2f  pos   = positionSalle(nom);
 
         bool surChemin = false;
-        for (const Salle* s : chemin) if (s->getNom() == nom) { surChemin = true; break; }
+        if (_mode == ModeAnimation::DIJKSTRA)
+            for (const Salle* s : chemin) if (s->getNom() == nom) { surChemin = true; break; }
 
         sf::CircleShape c(R);
         c.setOrigin(R, R); c.setPosition(pos);
