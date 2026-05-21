@@ -2,30 +2,29 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <iostream>
 #include "algo_deep_first.hpp"
 #include "fourmi.hpp"
 #include "fourmiliere.hpp"
 #include "salle.hpp"
 
-using namespace std;
-
 class Simulateur {
 public:
     Simulateur(const Fourmiliere& fourmiliere);
-
-    // Point d'entrée : lance la simulation complète et affiche les étapes
     void simuler();
 
 private:
-    const Fourmiliere& fourmiliere;
-    vector<vector<Salle*>> chemins;
-    map<Fourmi*, vector<Salle*>> assignation; // fourmi : son chemin
-    map<Fourmi*, int> positionSurChemin; // fourmi : son index actuel
-    map<Fourmi*, bool> aPlanifie; // fourmi : a bougé ce tour
-    int numeroEtape;
+    const Fourmiliere&                     fourmiliere;
+    std::vector<std::vector<Salle*>>       chemins;
+    std::map<Fourmi*, std::vector<Salle*>> assignation;
+    std::map<Fourmi*, int>                 positionSurChemin;
+    std::map<Fourmi*, bool>                aPlanifie;
+    int                                    numeroEtape;
+
+    // Débit = min des capacités des salles intermédiaires du chemin
+    // Limite le nombre de fourmis assignables à ce chemin
+    int calculerDebit(const std::vector<Salle*>& chemin) const;
 
     void assignerFourmisALeursChemins();
-    void executerUneEtape();
+    void executerUneEtape(int& nbMouvements);
     bool toutesAuDortoir() const;
 };

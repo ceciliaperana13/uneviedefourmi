@@ -1,74 +1,129 @@
 #include "../include/simulateur.hpp"
+#include <iostream>
+#include <climits>
 
-// Reçoit la fourmilière déjà construite et initialise le compteur d'étapes
 Simulateur::Simulateur(const Fourmiliere& fourmiliere)
     : fourmiliere(fourmiliere), numeroEtape(0) {}
 
-// trouve les chemins, assigne les fourmis, boucle jusqu'à ce que tout le monde soit au dortoir
+// Orchestre la simulation avec détection de deadlock :
+// si aucune fourmi ne bouge pendant une étape, on est bloqué définitivement
 void Simulateur::simuler() {
     chemins = AlgoDeepFirst::trouverTousLesChemins(fourmiliere);
+
+    if (chemins.empty()) {
+        std::cout << "Aucun chemin Sv -> Sd trouvé." << std::endl;
+        return;
+    }
+
     assignerFourmisALeursChemins();
 
     while (!toutesAuDortoir()) {
         numeroEtape++;
-        executerUneEtape();
+        int nbMouvements = 0;
+        executerUneEtape(nbMouvements);
+
+        // Deadlock : plus aucune fourmi ne peut avancer
+        if (nbMouvements == 0) {
+            std::cout << "[DEADLOCK] Aucun mouvement possible a l'etape "
+                      << numeroEtape << " — simulation arretee." << std::endl;
+            break;
+        }
     }
 }
 
-// Assigne chaque fourmi à un chemin et initialise sa position à 0 (vestibule)
+// Débit d'un chemin = capacité de la salle la plus étroite (hors Sv et Sd)
+// C'est le nombre max de fourmis pouvant traverser ce chemin simultanément
+int Simulateur::calculerDebit(const std::vector<Salle*>& chemin) const {
+    int debit = INT_MAX;
+    for (int i = 1; i < (int)chemin.size() - 1; i++) {
+        int cap = chemin[i]->getCapacite();
+        if (cap != Salle::CAPACITE_ILLIMITEE && cap < debit)
+            debit = cap;
+    }
+    return (debit == INT_MAX) ? 1 : debit;
+}
+
+// Assignation pondérée par le débit :
+// un chemin de débit 3 reçoit 3x plus de fourmis qu'un chemin de débit 1.
+// On remplit chaque chemin jusqu'à sa limite avant de passer au suivant.
 void Simulateur::assignerFourmisALeursChemins() {
-    const vector<Fourmi*>& fourmis = fourmiliere.getFourmis();
+    const std::vector<Fourmi*>& fourmis = fourmiliere.getFourmis();
+
+    // Calcule le débit de chaque chemin
+    std::vector<int> debits;
+    for (int i = 0; i < (int)chemins.size(); i++)
+        debits.push_back(calculerDebit(chemins[i]));
+
+    // Compteur d'assignations par chemin pour respecter le débit
+    std::vector<int> assignes(chemins.size(), 0);
 
     for (int i = 0; i < (int)fourmis.size(); i++) {
-        assignation[fourmis[i]]       = chemins[i % chemins.size()];
+        // Cherche le chemin avec le meilleur ratio restant (débit - déjà assignés)
+        // parmi ceux qui n'ont pas encore atteint leur plafond de débit
+        int cheminChoisi = -1;
+        int meilleurReste = -1;
+
+        for (int j = 0; j < (int)chemins.size(); j++) {
+            int reste = debits[j] - (assignes[j] % debits[j]);
+            if (reste > meilleurReste) {
+                meilleurReste = reste;
+                cheminChoisi  = j;
+            }
+        }
+
+        // Fallback : round-robin si tous les chemins sont au même niveau
+        if (cheminChoisi == -1)
+            cheminChoisi = i % (int)chemins.size();
+
+        assignation[fourmis[i]]       = chemins[cheminChoisi];
         positionSurChemin[fourmis[i]] = 0;
         aPlanifie[fourmis[i]]         = false;
+        assignes[cheminChoisi]++;
     }
 }
 
-// Exécute une étape complète en deux phases : planification puis commit
-// Affiche ensuite les mouvements de l'étape
-void Simulateur::executerUneEtape() {
-    const vector<Fourmi*>& fourmis = fourmiliere.getFourmis();
+// Exécute une étape : planification puis commit
+// nbMouvements permet à simuler() de détecter un deadlock
+void Simulateur::executerUneEtape(int& nbMouvements) {
+    const std::vector<Fourmi*>& fourmis = fourmiliere.getFourmis();
 
-    // Réinitialise les flags : une fourmi qui a bougé au tour précédent
-    // ne doit pas être commitée à nouveau sans avoir replanifié
-    for (Fourmi* fourmi : fourmis)
-        aPlanifie[fourmi] = false;
+    for (int i = 0; i < (int)fourmis.size(); i++)
+        aPlanifie[fourmis[i]] = false;
 
-    // Planification : chaque fourmi réserve sa prochaine salle et bloque une place
-    for (Fourmi* fourmi : fourmis) {
+    // Phase 1 — planification
+    for (int i = 0; i < (int)fourmis.size(); i++) {
+        Fourmi* fourmi = fourmis[i];
         if (fourmi->estAuDortoir()) continue;
 
-        vector<Salle*>& chemin = assignation[fourmi];
+        std::vector<Salle*>& chemin = assignation[fourmi];
         int pos                     = positionSurChemin[fourmi];
         Salle* prochaine            = chemin[pos + 1];
 
         aPlanifie[fourmi] = fourmi->planifierDeplacement(prochaine);
     }
 
-    // Commit : on récupère le texte du mouvement AVANT de bouger
-    // car commitDeplacement() remet prochaineSalle à nullptr
-    vector<string> mouvements;
+    // Phase 2 — commit + collecte des mouvements pour affichage
+    std::vector<std::string> mouvements;
 
-    for (Fourmi* fourmi : fourmis) {
+    for (int i = 0; i < (int)fourmis.size(); i++) {
+        Fourmi* fourmi = fourmis[i];
         if (!aPlanifie[fourmi]) continue;
 
         mouvements.push_back(fourmi->formatDeplacement());
         fourmi->commitDeplacement();
         positionSurChemin[fourmi]++;
+        nbMouvements++;
     }
 
-    // Affichage de l'étape
-    cout << "===== E" << numeroEtape << " =====" << endl;
-    for (const string& mouvement : mouvements)
-        cout << mouvement << endl;
+    std::cout << "===== E" << numeroEtape << " =====" << std::endl;
+    for (int i = 0; i < (int)mouvements.size(); i++)
+        std::cout << mouvements[i] << std::endl;
 }
 
-// Retourne true uniquement si toutes les fourmis ont atteint le dortoir
 bool Simulateur::toutesAuDortoir() const {
-    for (Fourmi* fourmi : fourmiliere.getFourmis()) {
-        if (!fourmi->estAuDortoir()) return false;
+    const std::vector<Fourmi*>& fourmis = fourmiliere.getFourmis();
+    for (int i = 0; i < (int)fourmis.size(); i++) {
+        if (!fourmis[i]->estAuDortoir()) return false;
     }
     return true;
 }
