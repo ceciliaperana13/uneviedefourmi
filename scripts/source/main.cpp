@@ -57,7 +57,7 @@ static void lancerDeepFirst() {
     traiterDeepFirst(BASE + "fourmiliere_trois.txt");
     traiterDeepFirst(BASE + "fourmiliere_quatre.txt");
     traiterDeepFirst(BASE + "fourmiliere_cinq.txt");
-    // traiterDeepFirst(BASE + "fourmiliere_3D.txt"); // CASSE L'ALGO POUR L'INSTANT
+    traiterDeepFirst(BASE + "fourmiliere_3D.txt");
     traiterDeepFirst(BASE + "salle_d_at-ant.txt");
     traiterDeepFirst(BASE + "La_hormiguera_de_la_muerte.txt");
 
@@ -149,8 +149,6 @@ static void afficherMenu() {
 //  Main
 // ============================================================
 int main() {
-    // Deep First tourne automatiquement au démarrage
-    lancerDeepFirst();
 
     int choix = -1;
     while (choix != 0) {
