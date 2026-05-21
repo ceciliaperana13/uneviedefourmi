@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <chrono>
+#include <filesystem>
 
 using namespace std;
 using namespace std::chrono;
@@ -93,8 +94,10 @@ void Visualiseur::chargerFourmiliere(const string& chemin) {
 
     // == 2. Dijkstra : chemin optimal + simulation ============
     {
+        streambuf* oldBuf = cout.rdbuf(nullptr);
         AlgorithmeDijkstra algo(_fm);
         _resDijkstra = algo.executer();
+        cout.rdbuf(oldBuf);
         // _resDijkstra.nbTours = tours pour passer toutes les fourmis
         // 1 tour pipeline = 1 seconde
         _tempsSimSec = _resDijkstra.nbTours;
@@ -274,7 +277,7 @@ void Visualiseur::dessinerSalles() {
         c.setOutlineColor(surChemin ? sf::Color(255,210,50) : sf::Color(120,120,150));
         _fenetre.draw(c);
 
-        sf::Text t; t.setFont(_police); t.setString(nom); t.setCharacterSize(13);
+        sf::Text t; t.setFont(_police); t.setString(nom); t.setCharacterSize(15);
         t.setFillColor(sf::Color::White);
         auto b = t.getLocalBounds();
         t.setOrigin(b.left+b.width/2.f, b.top+b.height/2.f);
@@ -284,7 +287,7 @@ void Visualiseur::dessinerSalles() {
         if (salle->getCapacite() != Salle::CAPACITE_ILLIMITEE) {
             sf::Text cap; cap.setFont(_police);
             cap.setString("c="+to_string(salle->getCapacite()));
-            cap.setCharacterSize(10); cap.setFillColor(sf::Color(180,180,180));
+            cap.setCharacterSize(12); cap.setFillColor(sf::Color(180,180,180));
             auto cb = cap.getLocalBounds();
             cap.setOrigin(cb.left+cb.width/2.f, 0.f);
             cap.setPosition(pos.x, pos.y+R+2.f);
@@ -318,7 +321,7 @@ void Visualiseur::dessinerFourmis() {
             if (_fm->getNbFourmis() <= 20) {
                 sf::Text t; t.setFont(_police);
                 t.setString(to_string(kv.second[i]));
-                t.setCharacterSize(8); t.setFillColor(sf::Color::White);
+                t.setCharacterSize(10); t.setFillColor(sf::Color::White);
                 auto b = t.getLocalBounds();
                 t.setOrigin(b.left+b.width/2.f, b.top+b.height/2.f);
                 t.setPosition(centre.x+ox, centre.y+oy-1.f);
@@ -347,21 +350,21 @@ void Visualiseur::dessinerPanneau() {
     _fenetre.draw(fond);
 
     auto txt = [&](const string& s, float x, float y,
-                   unsigned int sz = 13, sf::Color col = sf::Color::White) {
+                   unsigned int sz = 14, sf::Color col = sf::Color::White) {
         sf::Text t; t.setFont(_police); t.setString(s);
         t.setCharacterSize(sz); t.setFillColor(col); t.setPosition(x, y);
         _fenetre.draw(t);
     };
     auto sep = [&](const string& label, sf::Color col = sf::Color(100,200,255)) {
-        txt(label, px, py, 12, col); py += 16.f;
+        txt(label, px, py, 14, col); py += 18.f;
     };
 
     // == ① Titre ==============================================
-    txt(nomFourmiliere(_indexFm), px, py, 15, sf::Color(255,210,50)); py += 22.f;
+    txt(nomFourmiliere(_indexFm), px, py, 17, sf::Color(255,210,50)); py += 24.f;
     if (_fm) {
-        txt("Fourmis : " + to_string(_fm->getNbFourmis()), px, py, 12,
+        txt("Fourmis : " + to_string(_fm->getNbFourmis()), px, py, 14,
             sf::Color(180,220,180));
-        py += 18.f;
+        py += 20.f;
     }
 
     // == ② DFS ================================================
@@ -377,15 +380,15 @@ void Visualiseur::dessinerPanneau() {
             if (j < (int)ch.size()-1) ligne += "->";
         }
         if ((int)ligne.size() > 33) ligne = ligne.substr(0,30) + "...";
-        txt("  " + ligne, px, py, 10, sf::Color(200,200,200)); py += 13.f;
+        txt("  " + ligne, px, py, 12, sf::Color(200,200,200)); py += 15.f;
     }
     if ((int)_cheminsDFS.size() > affMax) {
         txt("  (+" + to_string((int)_cheminsDFS.size()-affMax) + " autres)",
-            px, py, 10, sf::Color(150,150,150));
-        py += 13.f;
+            px, py, 12, sf::Color(150,150,150));
+        py += 15.f;
     }
     txt("  CPU DFS : " + to_string(_tempsDfsUs) + " us",
-        px, py, 10, sf::Color(120,120,120)); py += 15.f;
+        px, py, 12, sf::Color(120,120,120)); py += 17.f;
 
     // == ③ Dijkstra ===========================================
     py += 4.f;
@@ -400,66 +403,63 @@ void Visualiseur::dessinerPanneau() {
             if (i < (int)chemin.size()-1) ch += "->";
         }
         if ((int)ch.size() <= 33) {
-            txt("  " + ch, px, py, 11, sf::Color(255,240,180)); py += 14.f;
+            txt("  " + ch, px, py, 13, sf::Color(255,240,180)); py += 16.f;
         } else {
             size_t mid = ch.rfind("->", ch.size()/2 + 8);
             if (mid == string::npos) mid = 30;
-            txt("  " + ch.substr(0, mid+2), px, py, 11, sf::Color(255,240,180)); py += 13.f;
-            txt("  " + ch.substr(mid+2),    px, py, 11, sf::Color(255,240,180)); py += 13.f;
+            txt("  " + ch.substr(0, mid+2), px, py, 13, sf::Color(255,240,180)); py += 15.f;
+            txt("  " + ch.substr(mid+2),    px, py, 13, sf::Color(255,240,180)); py += 15.f;
         }
         // Distance
         const string& nomD = _fm->getDortoir()->getNom();
         auto it = _resDijkstra.distances.find(nomD);
         if (it != _resDijkstra.distances.end() && it->second != INT_MAX)
             txt("  Distance : " + to_string(it->second) + " tunnel(s)",
-                px, py, 11, sf::Color(180,180,180));
-        py += 14.f;
+                px, py, 13, sf::Color(180,180,180));
+        py += 16.f;
         txt("  CPU Dijkstra : " + to_string(_resDijkstra.tempsUs) + " us",
-            px, py, 10, sf::Color(120,120,120)); py += 15.f;
+            px, py, 12, sf::Color(120,120,120)); py += 17.f;
     } else {
-        txt("  Aucun chemin Sv -> Sd", px, py, 11, sf::Color(255,100,100)); py += 16.f;
+        txt("  Aucun chemin Sv -> Sd", px, py, 13, sf::Color(255,100,100)); py += 18.f;
     }
 
     // == ④ Temps Sv→Sd ========================================
     py += 4.f;
     sep("== Temps de Sv a Sd ==");
     txt("  " + to_string(_tempsSimSec) + " seconde(s)  (" + to_string(_tempsSimSec) + " tours)",
-        px, py, 14, sf::Color(80,230,130)); py += 18.f;
-    txt("  1 tour de pipeline = 1 s", px, py, 10, sf::Color(120,120,120)); py += 15.f;
+        px, py, 16, sf::Color(80,230,130)); py += 20.f;
+    txt("  1 tour de pipeline = 1 s", px, py, 12, sf::Color(120,120,120)); py += 17.f;
 
     // == ⑤ Animation ==========================================
     py += 4.f;
     sep("== Animation ==");
     txt("Etape : " + to_string(_etapeCourante+1) + " / " + to_string((int)_etapes.size()),
-        px, py, 13, sf::Color(255,180,80)); py += 18.f;
+        px, py, 15, sf::Color(255,180,80)); py += 20.f;
 
     if (_etapeCourante >= 0 && _etapeCourante < (int)_etapes.size()) {
-        txt("Mouvements :", px, py, 12, sf::Color(150,200,255)); py += 14.f;
+        txt("Mouvements :", px, py, 14, sf::Color(150,200,255)); py += 16.f;
         for (const auto& mv : _etapes[_etapeCourante]) {
-            txt("  f"+to_string(mv.fourmiId)+" -> "+mv.salleDest, px, py, 11);
-            py += 13.f;
+            txt("  f"+to_string(mv.fourmiId)+" -> "+mv.salleDest, px, py, 13);
+            py += 15.f;
             if (py > _hauteur - 130.f) break;
         }
     }
 
     // == ⑥ Contrôles ==========================================
     py = _hauteur - 118.f;
-    txt("== Controles ==",           px, py, 11, sf::Color(120,120,150)); py += 16.f;
-    txt("ESPACE / -> : etape suiv.", px, py, 10, sf::Color(160,160,160)); py += 13.f;
-    txt("<-          : etape prec.", px, py, 10, sf::Color(160,160,160)); py += 13.f;
-    txt("R           : reinit.",     px, py, 10, sf::Color(160,160,160)); py += 13.f;
-    txt("haut / bas  : fourmiliere", px, py, 10, sf::Color(160,160,160)); py += 13.f;
-    txt("ESC         : quitter",     px, py, 10, sf::Color(160,160,160));
+    txt("== Controles ==",           px, py, 13, sf::Color(120,120,150)); py += 18.f;
+    txt("ESPACE / -> : etape suiv.", px, py, 12, sf::Color(160,160,160)); py += 15.f;
+    txt("<-          : etape prec.", px, py, 12, sf::Color(160,160,160)); py += 15.f;
+    txt("R           : reinit.",     px, py, 12, sf::Color(160,160,160)); py += 15.f;
+    txt("haut / bas  : fourmiliere", px, py, 12, sf::Color(160,160,160)); py += 15.f;
+    txt("ESC         : quitter",     px, py, 12, sf::Color(160,160,160));
 }
 
 // ============================================================
 //  nomFourmiliere
 // ============================================================
 string Visualiseur::nomFourmiliere(int i) const {
-    static const vector<string> noms = {
-        "Fourmiliere 0","Fourmiliere 1","Fourmiliere 2",
-        "Fourmiliere 3","Fourmiliere 4","Fourmiliere 5",
-        "Salle d'at-ant","La Hormiguera"
-    };
-    return (i>=0 && i<(int)noms.size()) ? noms[i] : "Fourmiliere "+to_string(i);
+    return (i >= 0 && i < (int)_fichiers.size())
+        ? filesystem::path(_fichiers[i]).stem().string()
+        : "Fourmiliere " + to_string(i);
 }
