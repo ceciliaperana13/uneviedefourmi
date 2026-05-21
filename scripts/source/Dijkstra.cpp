@@ -244,7 +244,7 @@ void AlgorithmeDijkstra::afficherResultat(const ResultatDijkstra& res) const {
     }
 
     // Nombre de tours
-    cout << "  Tours simulés  : " << res.nbTours << "\n";
+    cout << "  Tours simules  : " << res.nbTours << "\n";
 
     // Temps d'exécution de l'algo pur
     cout << "  Temps algo     : " << res.tempsUs << " us\n";

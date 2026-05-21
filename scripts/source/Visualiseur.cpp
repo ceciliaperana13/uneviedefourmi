@@ -82,7 +82,7 @@ void Visualiseur::chargerFourmiliere(const string& chemin) {
         delete _fm; _fm = nullptr; return;
     }
 
-    // ── 1. DFS : tous les chemins Sv→Sd ─────────────────────
+    // == 1. DFS : tous les chemins Sv→Sd =====================
     {
         auto t0 = high_resolution_clock::now();
         AlgoDeepFirst dfs;
@@ -91,7 +91,7 @@ void Visualiseur::chargerFourmiliere(const string& chemin) {
         _tempsDfsUs = duration_cast<microseconds>(t1 - t0).count();
     }
 
-    // ── 2. Dijkstra : chemin optimal + simulation ────────────
+    // == 2. Dijkstra : chemin optimal + simulation ============
     {
         AlgorithmeDijkstra algo(_fm);
         _resDijkstra = algo.executer();
@@ -356,7 +356,7 @@ void Visualiseur::dessinerPanneau() {
         txt(label, px, py, 12, col); py += 16.f;
     };
 
-    // ── ① Titre ──────────────────────────────────────────────
+    // == ① Titre ==============================================
     txt(nomFourmiliere(_indexFm), px, py, 15, sf::Color(255,210,50)); py += 22.f;
     if (_fm) {
         txt("Fourmis : " + to_string(_fm->getNbFourmis()), px, py, 12,
@@ -364,9 +364,9 @@ void Visualiseur::dessinerPanneau() {
         py += 18.f;
     }
 
-    // ── ② DFS ────────────────────────────────────────────────
+    // == ② DFS ================================================
     py += 4.f;
-    sep("── DFS (" + to_string((int)_cheminsDFS.size()) + " chemin(s)) ──");
+    sep("== DFS (" + to_string((int)_cheminsDFS.size()) + " chemin(s)) ==");
 
     int affMax = min((int)_cheminsDFS.size(), 6); // max 6 chemins affichés
     for (int ci = 0; ci < affMax; ci++) {
@@ -387,9 +387,9 @@ void Visualiseur::dessinerPanneau() {
     txt("  CPU DFS : " + to_string(_tempsDfsUs) + " us",
         px, py, 10, sf::Color(120,120,120)); py += 15.f;
 
-    // ── ③ Dijkstra ───────────────────────────────────────────
+    // == ③ Dijkstra ===========================================
     py += 4.f;
-    sep("── Dijkstra (optimal) ──");
+    sep("== Dijkstra (optimal) ==");
 
     const auto& chemin = _resDijkstra.chemin;
     if (!chemin.empty()) {
@@ -420,16 +420,16 @@ void Visualiseur::dessinerPanneau() {
         txt("  Aucun chemin Sv -> Sd", px, py, 11, sf::Color(255,100,100)); py += 16.f;
     }
 
-    // ── ④ Temps Sv→Sd ────────────────────────────────────────
+    // == ④ Temps Sv→Sd ========================================
     py += 4.f;
-    sep("── Temps Sv → Sd ──");
+    sep("== Temps de Sv a Sd ==");
     txt("  " + to_string(_tempsSimSec) + " seconde(s)  (" + to_string(_tempsSimSec) + " tours)",
         px, py, 14, sf::Color(80,230,130)); py += 18.f;
     txt("  1 tour de pipeline = 1 s", px, py, 10, sf::Color(120,120,120)); py += 15.f;
 
-    // ── ⑤ Animation ──────────────────────────────────────────
+    // == ⑤ Animation ==========================================
     py += 4.f;
-    sep("── Animation ──");
+    sep("== Animation ==");
     txt("Etape : " + to_string(_etapeCourante+1) + " / " + to_string((int)_etapes.size()),
         px, py, 13, sf::Color(255,180,80)); py += 18.f;
 
@@ -442,9 +442,9 @@ void Visualiseur::dessinerPanneau() {
         }
     }
 
-    // ── ⑥ Contrôles ──────────────────────────────────────────
+    // == ⑥ Contrôles ==========================================
     py = _hauteur - 118.f;
-    txt("── Controles ──",           px, py, 11, sf::Color(120,120,150)); py += 16.f;
+    txt("== Controles ==",           px, py, 11, sf::Color(120,120,150)); py += 16.f;
     txt("ESPACE / -> : etape suiv.", px, py, 10, sf::Color(160,160,160)); py += 13.f;
     txt("<-          : etape prec.", px, py, 10, sf::Color(160,160,160)); py += 13.f;
     txt("R           : reinit.",     px, py, 10, sf::Color(160,160,160)); py += 13.f;
