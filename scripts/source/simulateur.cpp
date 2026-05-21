@@ -8,6 +8,7 @@ Simulateur::Simulateur(const Fourmiliere& fourmiliere)
 // Orchestre la simulation avec détection de deadlock :
 // si aucune fourmi ne bouge pendant une étape, on est bloqué définitivement
 void Simulateur::simuler() {
+    _etapes.clear();
     chemins = AlgoDeepFirst::trouverTousLesChemins(fourmiliere);
 
     if (chemins.empty()) {
@@ -29,6 +30,10 @@ void Simulateur::simuler() {
             break;
         }
     }
+}
+
+const std::vector<std::vector<MouvementEtape>>& Simulateur::getEtapes() const {
+    return _etapes;
 }
 
 // Débit d'un chemin = capacité de la salle la plus étroite (hors Sv et Sd)
@@ -102,22 +107,27 @@ void Simulateur::executerUneEtape(int& nbMouvements) {
         aPlanifie[fourmi] = fourmi->planifierDeplacement(prochaine);
     }
 
-    // Phase 2 — commit + collecte des mouvements pour affichage
-    std::vector<std::string> mouvements;
+    // Phase 2 — commit + collecte des mouvements pour affichage et stockage
+    std::vector<std::string>   lignesTerminal;
+    std::vector<MouvementEtape> mouvementsEtape;
 
     for (int i = 0; i < (int)fourmis.size(); i++) {
         Fourmi* fourmi = fourmis[i];
         if (!aPlanifie[fourmi]) continue;
 
-        mouvements.push_back(fourmi->formatDeplacement());
+        lignesTerminal.push_back(fourmi->formatDeplacement());
+        mouvementsEtape.push_back({ fourmi->getId(), fourmi->getDestination()->getNom() });
+
         fourmi->commitDeplacement();
         positionSurChemin[fourmi]++;
         nbMouvements++;
     }
 
+    _etapes.push_back(mouvementsEtape);
+
     std::cout << "===== E" << numeroEtape << " =====" << std::endl;
-    for (int i = 0; i < (int)mouvements.size(); i++)
-        std::cout << mouvements[i] << std::endl;
+    for (int i = 0; i < (int)lignesTerminal.size(); i++)
+        std::cout << lignesTerminal[i] << std::endl;
 }
 
 bool Simulateur::toutesAuDortoir() const {

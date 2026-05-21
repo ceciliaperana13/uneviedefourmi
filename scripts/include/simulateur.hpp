@@ -7,10 +7,17 @@
 #include "fourmiliere.hpp"
 #include "salle.hpp"
 
+struct MouvementEtape {
+    int         fourmiId;
+    std::string salleDest;
+};
+
 class Simulateur {
 public:
     Simulateur(const Fourmiliere& fourmiliere);
     void simuler();
+
+    const std::vector<std::vector<MouvementEtape>>& getEtapes() const;
 
 private:
     const Fourmiliere&                     fourmiliere;
@@ -19,6 +26,8 @@ private:
     std::map<Fourmi*, int>                 positionSurChemin;
     std::map<Fourmi*, bool>                aPlanifie;
     int                                    numeroEtape;
+
+    std::vector<std::vector<MouvementEtape>> _etapes;
 
     // Débit = min des capacités des salles intermédiaires du chemin
     // Limite le nombre de fourmis assignables à ce chemin

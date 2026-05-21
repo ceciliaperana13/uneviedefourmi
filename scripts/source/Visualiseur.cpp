@@ -22,7 +22,8 @@ Visualiseur::Visualiseur(unsigned int largeur, unsigned int hauteur)
     : _fenetre(sf::VideoMode(largeur, hauteur), "Fourmiliere - DFS + Dijkstra",
                sf::Style::Titlebar | sf::Style::Close),
       _largeur(largeur), _hauteur(hauteur),
-      _fm(nullptr), _etapeCourante(-1), _indexFm(0)
+      _fm(nullptr), _etapeCourante(-1), _indexFm(0),
+      _mode(ModeAnimation::DIJKSTRA)
 {
     _fenetre.setFramerateLimit(60);
     for (const auto& p : {
@@ -47,9 +48,10 @@ void Visualiseur::run(const vector<string>& fichiers) {
             if (ev.type == sf::Event::KeyPressed) {
                 switch (ev.key.code) {
                     case sf::Keyboard::Right:
-                    case sf::Keyboard::Space:  avancerEtape();  break;
-                    case sf::Keyboard::Left:   reculerEtape();  break;
-                    case sf::Keyboard::R:      reinitialiser(); break;
+                    case sf::Keyboard::Space:  avancerEtape();   break;
+                    case sf::Keyboard::Left:   reculerEtape();   break;
+                    case sf::Keyboard::R:      reinitialiser();  break;
+                    case sf::Keyboard::Tab:    basculerMode();   break;
                     case sf::Keyboard::Up:
                     case sf::Keyboard::PageUp:
                         _indexFm = (_indexFm + 1) % (int)_fichiers.size();
@@ -92,19 +94,26 @@ void Visualiseur::chargerFourmiliere(const string& chemin) {
         _tempsDfsUs = duration_cast<microseconds>(t1 - t0).count();
     }
 
-    // == 2. Dijkstra : chemin optimal + simulation ============
+    // == 2. Simulateur DFS : etapes pour l'animation ==========
+    {
+        streambuf* oldBuf = cout.rdbuf(nullptr);
+        Simulateur sim(*_fm);
+        sim.simuler();
+        cout.rdbuf(oldBuf);
+        _etapesDFS = sim.getEtapes();
+    }
+
+    // == 3. Dijkstra : chemin optimal + simulation ============
     {
         streambuf* oldBuf = cout.rdbuf(nullptr);
         AlgorithmeDijkstra algo(_fm);
         _resDijkstra = algo.executer();
         cout.rdbuf(oldBuf);
-        // _resDijkstra.nbTours = tours pour passer toutes les fourmis
-        // 1 tour pipeline = 1 seconde
         _tempsSimSec = _resDijkstra.nbTours;
     }
 
     calculerPositions();
-    initialiserEtapes();
+    initialiserEtapesDijkstra();
     reinitialiser();
 }
 
@@ -134,10 +143,10 @@ void Visualiseur::calculerPositions() {
 }
 
 // ============================================================
-//  initialiserEtapes  (pipeline virtuel sur chemin Dijkstra)
+//  initialiserEtapesDijkstra  (pipeline virtuel sur chemin Dijkstra)
 // ============================================================
-void Visualiseur::initialiserEtapes() {
-    _etapes.clear();
+void Visualiseur::initialiserEtapesDijkstra() {
+    _etapesDijkstra.clear();
     const auto& chemin = _resDijkstra.chemin;
     if (chemin.empty()) return;
 
@@ -184,17 +193,21 @@ void Visualiseur::initialiserEtapes() {
             occupation[ai]--; occupation[ni]++;
             posVirtuelle[mv.fourmiId] = ni;
         }
-        _etapes.push_back(mouvements);
+        _etapesDijkstra.push_back(mouvements);
         tousArives = true;
         for (int f = 1; f <= nbF; f++)
             if (posVirtuelle[f] != longueur - 1) { tousArives = false; break; }
-        if ((int)_etapes.size() > nbF * longueur * 2) break;
+        if ((int)_etapesDijkstra.size() > nbF * longueur * 2) break;
     }
 }
 
 // ============================================================
 //  Navigation
 // ============================================================
+const vector<vector<MouvementEtape>>& Visualiseur::etapesActives() const {
+    return (_mode == ModeAnimation::DFS) ? _etapesDFS : _etapesDijkstra;
+}
+
 void Visualiseur::reinitialiser() {
     _etapeCourante = -1;
     _posFourmis.clear();
@@ -202,10 +215,18 @@ void Visualiseur::reinitialiser() {
     for (int i = 1; i <= _fm->getNbFourmis(); i++) _posFourmis[i] = "Sv";
 }
 
+void Visualiseur::basculerMode() {
+    _mode = (_mode == ModeAnimation::DIJKSTRA)
+          ? ModeAnimation::DFS
+          : ModeAnimation::DIJKSTRA;
+    reinitialiser();
+}
+
 void Visualiseur::avancerEtape() {
-    if (_etapeCourante >= (int)_etapes.size() - 1) return;
+    const auto& etapes = etapesActives();
+    if (_etapeCourante >= (int)etapes.size() - 1) return;
     _etapeCourante++;
-    for (const auto& mv : _etapes[_etapeCourante])
+    for (const auto& mv : etapes[_etapeCourante])
         _posFourmis[mv.fourmiId] = mv.salleDest;
 }
 
@@ -215,8 +236,9 @@ void Visualiseur::reculerEtape() {
     _posFourmis.clear();
     if (!_fm) return;
     for (int i = 1; i <= _fm->getNbFourmis(); i++) _posFourmis[i] = "Sv";
+    const auto& etapes = etapesActives();
     for (int e = 0; e <= _etapeCourante; e++)
-        for (const auto& mv : _etapes[e])
+        for (const auto& mv : etapes[e])
             _posFourmis[mv.fourmiId] = mv.salleDest;
 }
 
@@ -228,6 +250,7 @@ sf::Vector2f Visualiseur::positionSalle(const string& nom) const {
     return it != _positions.end()
         ? sf::Vector2f(it->second.x, it->second.y) : sf::Vector2f(0, 0);
 }
+
 sf::Color Visualiseur::couleurFourmi(int id) const {
     return PALETTE[(id - 1) % NB_COULEURS];
 }
@@ -333,7 +356,7 @@ void Visualiseur::dessinerFourmis() {
 
 // ============================================================
 //  dessinerPanneau
-//  ① Titre + fourmis
+//  ① Titre + fourmis + mode
 //  ② DFS  : nb chemins + liste
 //  ③ Dijkstra : chemin optimal + distance
 //  ④ Temps Sv→Sd en secondes (= nbTours)
@@ -367,6 +390,12 @@ void Visualiseur::dessinerPanneau() {
         py += 20.f;
     }
 
+    // Mode actif
+    bool modeDFS = (_mode == ModeAnimation::DFS);
+    txt(modeDFS ? "[ Mode : DFS ]" : "[ Mode : Dijkstra ]",
+        px, py, 14, modeDFS ? sf::Color(100,220,255) : sf::Color(255,210,50));
+    py += 20.f;
+
     // == ② DFS ================================================
     py += 4.f;
     sep("== DFS (" + to_string((int)_cheminsDFS.size()) + " chemin(s)) ==");
@@ -396,7 +425,6 @@ void Visualiseur::dessinerPanneau() {
 
     const auto& chemin = _resDijkstra.chemin;
     if (!chemin.empty()) {
-        // Chemin en 1 ou 2 lignes
         string ch;
         for (int i = 0; i < (int)chemin.size(); i++) {
             ch += chemin[i]->getNom();
@@ -433,12 +461,13 @@ void Visualiseur::dessinerPanneau() {
     // == ⑤ Animation ==========================================
     py += 4.f;
     sep("== Animation ==");
-    txt("Etape : " + to_string(_etapeCourante+1) + " / " + to_string((int)_etapes.size()),
+    const auto& etapes = etapesActives();
+    txt("Etape : " + to_string(_etapeCourante+1) + " / " + to_string((int)etapes.size()),
         px, py, 15, sf::Color(255,180,80)); py += 20.f;
 
-    if (_etapeCourante >= 0 && _etapeCourante < (int)_etapes.size()) {
+    if (_etapeCourante >= 0 && _etapeCourante < (int)etapes.size()) {
         txt("Mouvements :", px, py, 14, sf::Color(150,200,255)); py += 16.f;
-        for (const auto& mv : _etapes[_etapeCourante]) {
+        for (const auto& mv : etapes[_etapeCourante]) {
             txt("  f"+to_string(mv.fourmiId)+" -> "+mv.salleDest, px, py, 13);
             py += 15.f;
             if (py > _hauteur - 130.f) break;
@@ -446,8 +475,9 @@ void Visualiseur::dessinerPanneau() {
     }
 
     // == ⑥ Contrôles ==========================================
-    py = _hauteur - 118.f;
+    py = _hauteur - 132.f;
     txt("== Controles ==",           px, py, 13, sf::Color(120,120,150)); py += 18.f;
+    txt("TAB         : switch mode", px, py, 12, sf::Color(160,160,160)); py += 15.f;
     txt("ESPACE / -> : etape suiv.", px, py, 12, sf::Color(160,160,160)); py += 15.f;
     txt("<-          : etape prec.", px, py, 12, sf::Color(160,160,160)); py += 15.f;
     txt("R           : reinit.",     px, py, 12, sf::Color(160,160,160)); py += 15.f;
