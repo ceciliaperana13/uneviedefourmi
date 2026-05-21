@@ -1,0 +1,11 @@
+NOUVELLE REGLE SUR LES CAPACITES! 
+
+zéro :             3 => 2, MINIMUM ATTEINT  
+une : 7            DEJA MINIMUM   
+deux : 1           DEJA MINIMUM 
+trois : 7          DEJA MINIMUM 
+quatre :           14 => 10 !!!!!!!!!!!!!
+cinq :             29 => 13 !!!!!!!!!!!!!
+hormiguera :       9 => 9, peut etre déja au minimum, dur à dire 
+3D :               27 => BLOQUE, casse l'algorithme !!!!!!!!!!! => NOUVELLE REGLE SUR LES CHEMINS =>
+salle d'attente :  89 => 20 !!!!!!!!!!!!!!!!!

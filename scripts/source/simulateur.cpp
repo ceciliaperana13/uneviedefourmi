@@ -1,18 +1,18 @@
 #include "../include/simulateur.hpp"
 #include <iostream>
 #include <climits>
+#include <cmath>
+#include <algorithm>
 
 Simulateur::Simulateur(const Fourmiliere& fourmiliere)
     : fourmiliere(fourmiliere), numeroEtape(0) {}
 
-// Orchestre la simulation avec détection de deadlock :
-// si aucune fourmi ne bouge pendant une étape, on est bloqué définitivement
 void Simulateur::simuler() {
     _etapes.clear();
     chemins = AlgoDeepFirst::trouverTousLesChemins(fourmiliere);
 
     if (chemins.empty()) {
-        std::cout << "Aucun chemin Sv -> Sd trouvé." << std::endl;
+        std::cout << "Aucun chemin Sv -> Sd trouve." << std::endl;
         return;
     }
 
@@ -23,10 +23,9 @@ void Simulateur::simuler() {
         int nbMouvements = 0;
         executerUneEtape(nbMouvements);
 
-        // Deadlock : plus aucune fourmi ne peut avancer
         if (nbMouvements == 0) {
             std::cout << "[DEADLOCK] Aucun mouvement possible a l'etape "
-                      << numeroEtape << " — simulation arretee." << std::endl;
+                      << numeroEtape << " - simulation arretee." << std::endl;
             break;
         }
     }
@@ -36,8 +35,6 @@ const std::vector<std::vector<MouvementEtape>>& Simulateur::getEtapes() const {
     return _etapes;
 }
 
-// Débit d'un chemin = capacité de la salle la plus étroite (hors Sv et Sd)
-// C'est le nombre max de fourmis pouvant traverser ce chemin simultanément
 int Simulateur::calculerDebit(const std::vector<Salle*>& chemin) const {
     int debit = INT_MAX;
     for (int i = 1; i < (int)chemin.size() - 1; i++) {
@@ -45,95 +42,80 @@ int Simulateur::calculerDebit(const std::vector<Salle*>& chemin) const {
         if (cap != Salle::CAPACITE_ILLIMITEE && cap < debit)
             debit = cap;
     }
-    return (debit == INT_MAX) ? 1 : debit;
+    return (debit == INT_MAX) ? INT_MAX : debit;
 }
 
-// Assignation pondérée par le débit :
-// un chemin de débit 3 reçoit 3x plus de fourmis qu'un chemin de débit 1.
-// On remplit chaque chemin jusqu'à sa limite avant de passer au suivant.
+int Simulateur::tempsEstime(int nbFourmis, const std::vector<Salle*>& chemin) const {
+    int longueur = (int)chemin.size() - 1;
+    int debit    = calculerDebit(chemin);
+    if (debit == INT_MAX) debit = nbFourmis;
+    return longueur + (int)std::ceil((double)nbFourmis / debit);
+}
+
 void Simulateur::assignerFourmisALeursChemins() {
     const std::vector<Fourmi*>& fourmis = fourmiliere.getFourmis();
-
-    // Calcule le débit de chaque chemin
-    std::vector<int> debits;
-    for (int i = 0; i < (int)chemins.size(); i++)
-        debits.push_back(calculerDebit(chemins[i]));
-
-    // Compteur d'assignations par chemin pour respecter le débit
     std::vector<int> assignes(chemins.size(), 0);
 
     for (int i = 0; i < (int)fourmis.size(); i++) {
-        // Cherche le chemin avec le meilleur ratio restant (débit - déjà assignés)
-        // parmi ceux qui n'ont pas encore atteint leur plafond de débit
-        int cheminChoisi = -1;
-        int meilleurReste = -1;
+        int cheminChoisi  = 0;
+        int meilleurTemps = INT_MAX;
 
         for (int j = 0; j < (int)chemins.size(); j++) {
-            int reste = debits[j] - (assignes[j] % debits[j]);
-            if (reste > meilleurReste) {
-                meilleurReste = reste;
+            int t = tempsEstime(assignes[j] + 1, chemins[j]);
+            if (t < meilleurTemps) {
+                meilleurTemps = t;
                 cheminChoisi  = j;
             }
         }
 
-        // Fallback : round-robin si tous les chemins sont au même niveau
-        if (cheminChoisi == -1)
-            cheminChoisi = i % (int)chemins.size();
-
         assignation[fourmis[i]]       = chemins[cheminChoisi];
         positionSurChemin[fourmis[i]] = 0;
-        aPlanifie[fourmis[i]]         = false;
         assignes[cheminChoisi]++;
     }
 }
 
-// Exécute une étape : planification puis commit
-// nbMouvements permet à simuler() de détecter un deadlock
+// Pipeline correct : on planifie ET committe immédiatement fourmi par fourmi,
+// de la plus avancée à la moins avancée.
+// Ainsi quand f36 essaie d'entrer en S4, f40 l'a déjà quittée —
+// la capacité libérée est immédiatement visible pour les fourmis derrière.
 void Simulateur::executerUneEtape(int& nbMouvements) {
     const std::vector<Fourmi*>& fourmis = fourmiliere.getFourmis();
 
-    for (int i = 0; i < (int)fourmis.size(); i++)
-        aPlanifie[fourmis[i]] = false;
+    std::vector<Fourmi*> ordre(fourmis.begin(), fourmis.end());
+    std::sort(ordre.begin(), ordre.end(), [&](Fourmi* a, Fourmi* b) {
+        return positionSurChemin[a] > positionSurChemin[b];
+    });
 
-    // Phase 1 — planification
-    for (int i = 0; i < (int)fourmis.size(); i++) {
-        Fourmi* fourmi = fourmis[i];
-        if (fourmi->estAuDortoir()) continue;
-
-        std::vector<Salle*>& chemin = assignation[fourmi];
-        int pos                     = positionSurChemin[fourmi];
-        Salle* prochaine            = chemin[pos + 1];
-
-        aPlanifie[fourmi] = fourmi->planifierDeplacement(prochaine);
-    }
-
-    // Phase 2 — commit + collecte des mouvements pour affichage et stockage
-    std::vector<std::string>   lignesTerminal;
+    std::vector<std::string>    lignesTerminal;
     std::vector<MouvementEtape> mouvementsEtape;
 
-    for (int i = 0; i < (int)fourmis.size(); i++) {
-        Fourmi* fourmi = fourmis[i];
-        if (!aPlanifie[fourmi]) continue;
+    for (Fourmi* fourmi : ordre) {
+        if (fourmi->estAuDortoir()) continue;
 
-        lignesTerminal.push_back(fourmi->formatDeplacement());
-        mouvementsEtape.push_back({ fourmi->getId(), fourmi->getDestination()->getNom() });
+        int    pos      = positionSurChemin[fourmi];
+        Salle* prochain = assignation[fourmi][pos + 1];
 
-        fourmi->commitDeplacement();
-        positionSurChemin[fourmi]++;
-        nbMouvements++;
+        // Planifier et committer immédiatement pour libérer la place
+        // avant que la fourmi derrière essaie d'avancer
+        if (fourmi->planifierDeplacement(prochain)) {
+            lignesTerminal.push_back(fourmi->formatDeplacement());
+            mouvementsEtape.push_back({ fourmi->getId(), prochain->getNom() });
+            fourmi->commitDeplacement();
+            positionSurChemin[fourmi]++;
+            nbMouvements++;
+        }
     }
 
     _etapes.push_back(mouvementsEtape);
 
     std::cout << "===== E" << numeroEtape << " =====" << std::endl;
-    for (int i = 0; i < (int)lignesTerminal.size(); i++)
-        std::cout << lignesTerminal[i] << std::endl;
+    for (const auto& ligne : lignesTerminal)
+        std::cout << ligne << std::endl;
 }
 
 bool Simulateur::toutesAuDortoir() const {
     const std::vector<Fourmi*>& fourmis = fourmiliere.getFourmis();
-    for (int i = 0; i < (int)fourmis.size(); i++) {
-        if (!fourmis[i]->estAuDortoir()) return false;
-    }
+    for (Fourmi* f : fourmis)
+        if (!f->estAuDortoir()) return false;
     return true;
 }
