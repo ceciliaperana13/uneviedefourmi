@@ -1,7 +1,7 @@
-
 #include "../include/main.hpp"
 #include "../include/fourmiliere.hpp"
 #include "../include/Dijkstra.hpp"
+#include "../include/Visualiseur.hpp"
 #include <iostream>
 #include <vector>
 #include <string>
@@ -36,11 +36,9 @@ static void traiterDeepFirst(const string& chemin) {
     }
 
     cout << "\n========== " << chemin << " ==========" << endl;
-    // Affiche une représentation schématique de la fourmilière
     fourmiliere.afficher();
     cout << endl;
 
-    // Résoud la fourmilière et affiche les étapes 
     Simulateur simulateur(fourmiliere);
     simulateur.simuler();
 }
@@ -57,7 +55,6 @@ static void lancerDeepFirst() {
     traiterDeepFirst(BASE + "fourmiliere_trois.txt");
     traiterDeepFirst(BASE + "fourmiliere_quatre.txt");
     traiterDeepFirst(BASE + "fourmiliere_cinq.txt");
-    // traiterDeepFirst(BASE + "fourmiliere_3D.txt"); // CASSE L'ALGO POUR L'INSTANT
     traiterDeepFirst(BASE + "salle_d_at-ant.txt");
     traiterDeepFirst(BASE + "La_hormiguera_de_la_muerte.txt");
 
@@ -68,7 +65,7 @@ static void lancerDeepFirst() {
 }
 
 // ============================================================
-//  ALGORITHME 2 — Dijkstra
+//  ALGORITHME 2 — Dijkstra (terminal)
 // ============================================================
 static void traiterDijkstra(const string& chemin, const string& label) {
     separateur(label);
@@ -119,7 +116,7 @@ static void lancerDijkstra() {
         { BASE + "fourmiliere_quatre.txt",         "Fourmiliere 4"                   },
         { BASE + "fourmiliere_cinq.txt",           "Fourmiliere 5"                   },
         { BASE + "salle_d_at-ant.txt",             "Salle d'at-ant"                  },
-        { BASE + "La_hormiguera_de_la_muerte.txt", "La Hormiguera de la Muerte"      },
+        { BASE + "La_hormiguera_de_la_muerte.txt", "La Hormiguera de la Muerte"       },
     };
 
     for (const auto& [chemin, label] : fourmilieres)
@@ -131,6 +128,28 @@ static void lancerDijkstra() {
 }
 
 // ============================================================
+//  ALGORITHME 3 — Visualiseur SFML (fenêtre graphique)
+// ============================================================
+static void lancerVisualiseur() {
+    cout << "\n  [INFO] Ouverture de la fenetre graphique...\n";
+    cout << "  [INFO] Le terminal reste actif. Fermez la fenetre pour revenir au menu.\n\n";
+
+    const vector<string> fichiers = {
+        BASE + "fourmiliere_zero.txt",
+        BASE + "fourmiliere_un.txt",
+        BASE + "fourmiliere_deux.txt",
+        BASE + "fourmiliere_trois.txt",
+        BASE + "fourmiliere_quatre.txt",
+        BASE + "fourmiliere_cinq.txt",
+    };
+
+    Visualiseur vis(1280, 800);
+    vis.run(fichiers);  // bloquant jusqu'à fermeture de la fenêtre
+
+    cout << "\n  [INFO] Fenetre fermee, retour au menu.\n";
+}
+
+// ============================================================
 //  Menu interactif
 // ============================================================
 static void afficherMenu() {
@@ -139,7 +158,8 @@ static void afficherMenu() {
     cout << "║        SIMULATION DE FOURMILIERES            ║\n";
     cout << "╠══════════════════════════════════════════════╣\n";
     cout << "║  1  —  Deep First + Round Robin Nelson       ║\n";
-    cout << "║  2  —  Dijkstra                              ║\n";
+    cout << "║  2  —  Dijkstra (terminal)                   ║\n";
+    cout << "║  3  —  Dijkstra (fenetre graphique SFML)     ║\n";
     cout << "║  0  —  Quitter                               ║\n";
     cout << "╚══════════════════════════════════════════════╝\n";
     cout << "  Votre choix : ";
@@ -149,27 +169,26 @@ static void afficherMenu() {
 //  Main
 // ============================================================
 int main() {
-    // Deep First tourne automatiquement au démarrage
     lancerDeepFirst();
 
     int choix = -1;
     while (choix != 0) {
         afficherMenu();
 
-        // Lecture robuste : rejette tout ce qui n'est pas un entier
         if (!(cin >> choix)) {
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            cout << "  [ERREUR] Entree invalide, veuillez saisir 0, 1 ou 2.\n";
+            cout << "  [ERREUR] Entree invalide, veuillez saisir 0, 1, 2 ou 3.\n";
             continue;
         }
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
         switch (choix) {
-            case 1:  lancerDeepFirst(); break;
-            case 2:  lancerDijkstra();  break;
+            case 1:  lancerDeepFirst();    break;
+            case 2:  lancerDijkstra();     break;
+            case 3:  lancerVisualiseur();  break;
             case 0:  cout << "\n  Au revoir !\n\n"; break;
-            default: cout << "  [ERREUR] Choix invalide, veuillez saisir 0, 1 ou 2.\n"; break;
+            default: cout << "  [ERREUR] Choix invalide, veuillez saisir 0, 1, 2 ou 3.\n"; break;
         }
     }
 
