@@ -84,6 +84,7 @@ void Visualiseur::chargerFourmiliere(const string& chemin) {
         cerr << "Impossible de charger : " << chemin << "\n";
         delete _fm; _fm = nullptr; return;
     }
+    
 
     // == 1. DFS : tous les chemins Sv→Sd =====================
     {
