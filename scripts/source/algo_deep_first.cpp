@@ -1,6 +1,4 @@
 #include "../include/algo_deep_first.hpp"
-#include <algorithm>
-#include <queue>
 
 // Point d'entrée public.
 // Calcule d'abord les distances BFS depuis Sd, puis lance le DFS filtré,

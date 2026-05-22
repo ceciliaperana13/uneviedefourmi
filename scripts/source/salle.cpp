@@ -1,5 +1,4 @@
 #include "../include/salle.hpp"
-#include <algorithm>
 
 // Initialise la salle avec son nom, sa capacité, et tous les compteurs à zéro
 Salle::Salle(const string& nom, int capacite)

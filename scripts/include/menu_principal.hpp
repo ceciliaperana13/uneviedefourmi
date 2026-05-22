@@ -12,6 +12,8 @@
 #include "fourmiliere.hpp"
 #include "simulateur.hpp"
 
+using namespace std;
+
 class MenuPrincipal {
 public:
     explicit MenuPrincipal(const std::string& dossierFourmilieres);

@@ -1,7 +1,11 @@
 #pragma once
+
 #include <map>
 #include <string>
 #include <vector>
+#include <algorithm>
+#include <queue>
+
 #include "fourmiliere.hpp"
 #include "salle.hpp"
 

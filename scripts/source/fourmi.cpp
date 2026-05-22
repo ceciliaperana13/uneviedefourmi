@@ -1,5 +1,4 @@
 #include "../include/fourmi.hpp"
-#include "../include/salle.hpp"
 
 // Toutes les fourmis démarrent dans le vestibule, sans destination prévue
 Fourmi::Fourmi(int id, Salle* salleDepart)

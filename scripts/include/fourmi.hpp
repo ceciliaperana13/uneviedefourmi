@@ -1,7 +1,8 @@
 #pragma once
+
 #include <string>
 
-class Salle;
+#include "salle.hpp"
 
 class Fourmi {
 public:
