@@ -33,9 +33,9 @@ Visualiseur::Visualiseur(unsigned int largeur, unsigned int hauteur)
         if (_police.loadFromFile(p)) break;
 }
 
-// ===========
+// ============================================================
 //  run
-// ============
+// ============================================================
 void Visualiseur::run(const vector<string>& fichiers) {
     _fichiers = fichiers;
     _indexFm  = 0;
@@ -75,7 +75,6 @@ void Visualiseur::run(const vector<string>& fichiers) {
 
 // ============================================================
 //  chargerFourmiliere
-//  Lance DFS puis Dijkstra directement, stocke les résultats
 // ============================================================
 void Visualiseur::chargerFourmiliere(const string& chemin) {
     delete _fm;
@@ -84,9 +83,8 @@ void Visualiseur::chargerFourmiliere(const string& chemin) {
         cerr << "Impossible de charger : " << chemin << "\n";
         delete _fm; _fm = nullptr; return;
     }
-    
 
-    // == 1. DFS : tous les chemins Sv→Sd =====================
+    // == 1. DFS : tous les chemins Sv->Sd ====================
     {
         auto t0 = high_resolution_clock::now();
         AlgoDeepFirst dfs;
@@ -95,7 +93,7 @@ void Visualiseur::chargerFourmiliere(const string& chemin) {
         _tempsDfsUs = duration_cast<microseconds>(t1 - t0).count();
     }
 
-    // == 2. Simulateur DFS : etapes pour l'animation ==========
+    // == 2. Simulateur DFS : etapes pour l'animation =========
     {
         streambuf* oldBuf = cout.rdbuf(nullptr);
         Simulateur sim(*_fm);
@@ -104,7 +102,7 @@ void Visualiseur::chargerFourmiliere(const string& chemin) {
         _etapesDFS = sim.getEtapes();
     }
 
-    // == 3. Dijkstra : chemin optimal + simulation ============
+    // == 3. Dijkstra : chemin optimal + etapes reelles =======
     {
         streambuf* oldBuf = cout.rdbuf(nullptr);
         AlgorithmeDijkstra algo(_fm);
@@ -144,61 +142,81 @@ void Visualiseur::calculerPositions() {
 }
 
 // ============================================================
-//  initialiserEtapesDijkstra  (pipeline virtuel sur chemin Dijkstra)
+//  initialiserEtapesDijkstra
+//
+//  Simule le pipeline le long du chemin optimal Dijkstra
+//  en respectant les capacites des salles intermediaires.
+//
+//  Principe :
+//  - Toutes les fourmis debutent a Sv (chemin[0])
+//  - A chaque tour, on traite les fourmis les plus avancees
+//    en premier (elles liberent leur place pour les suivantes
+//    DANS LE MEME TOUR grace au occ[] mis a jour immediatement)
+//  - Une fourmi ne peut avancer que si la salle suivante
+//    a encore de la capacite disponible
 // ============================================================
 void Visualiseur::initialiserEtapesDijkstra() {
     _etapesDijkstra.clear();
-    const auto& chemin = _resDijkstra.chemin;
-    if (chemin.empty()) return;
+    if (!_fm || _resDijkstra.chemin.empty()) return;
 
-    map<string, int> indexDansChemin;
-    for (int i = 0; i < (int)chemin.size(); i++)
-        indexDansChemin[chemin[i]->getNom()] = i;
+    const auto& chemin = _resDijkstra.chemin;   // chemin[0]=Sv … chemin[L-1]=Sd
+    const int   L = (int)chemin.size();
+    const int   N = _fm->getNbFourmis();
+    if (L < 2 || N <= 0) return;
 
-    int nbF      = _fm->getNbFourmis();
-    int longueur = (int)chemin.size();
+    // posIdx[id] : index courant dans chemin (0 = Sv, L-1 = Sd)
+    // Toutes les fourmis commencent en Sv = chemin[0]
+    vector<int> posIdx(N + 1, 0);
 
-    auto capacite = [&](int idx) -> int {
-        if (idx == 0 || idx == longueur - 1) return INT_MAX;
-        return chemin[idx]->getCapacite();
-    };
+    // Occupation effective de chaque salle du chemin
+    vector<int> occ(L, 0);
+    occ[0] = N;   // toutes les fourmis a Sv au depart
 
-    vector<int> posVirtuelle(nbF + 1, 0);
-    vector<int> occupation(longueur, 0);
-    occupation[0] = nbF;
+    const int maxTours = (N + L) * 3 + 20;   // borne de securite
 
-    bool tousArives = false;
-    while (!tousArives) {
+    for (int t = 0; t < maxTours; t++) {
+
+        // Fourmis encore en route (pas encore a Sd)
+        vector<int> ordre;
+        for (int id = 1; id <= N; id++)
+            if (posIdx[id] < L - 1) ordre.push_back(id);
+        if (ordre.empty()) break;
+
+        // Les plus avancees bougent en premier :
+        // elles liberent leur place immediatement dans occ[],
+        // ce qui permet aux fourmis derriere d'entrer dans le meme tour.
+        sort(ordre.begin(), ordre.end(), [&](int a, int b) {
+            return posIdx[a] > posIdx[b];
+        });
+
         vector<MouvementEtape> mouvements;
-        for (int etape = longueur - 1; etape >= 1; etape--) {
-            int dest = etape, src = etape - 1;
-            int capDest = capacite(dest);
-            for (int f = 1; f <= nbF; f++) {
-                if (posVirtuelle[f] != src) continue;
-                int dejaPlanifies = 0;
-                for (const auto& mv : mouvements)
-                    if (indexDansChemin.count(mv.salleDest) &&
-                        indexDansChemin[mv.salleDest] == dest)
-                        dejaPlanifies++;
-                if (dest == longueur - 1 ||
-                    occupation[dest] + dejaPlanifies < capDest) {
-                    mouvements.push_back({ f, chemin[dest]->getNom() });
-                    break;
-                }
-            }
+
+        for (int id : ordre) {
+            int cur  = posIdx[id];
+            int next = cur + 1;
+            if (next >= L) continue;    // deja en Sd
+
+            int cap = chemin[next]->getCapacite();
+            bool placeLibre = (cap == Salle::CAPACITE_ILLIMITEE)
+                           || (occ[next] < cap);
+            if (!placeLibre) continue;
+
+            // Deplacement : liberation immediate de la place source
+            occ[cur]--;
+            occ[next]++;
+            posIdx[id] = next;
+
+            mouvements.push_back({ id, chemin[next]->getNom() });
         }
-        if (mouvements.empty()) break;
-        for (const auto& mv : mouvements) {
-            int ai = posVirtuelle[mv.fourmiId];
-            int ni = indexDansChemin[mv.salleDest];
-            occupation[ai]--; occupation[ni]++;
-            posVirtuelle[mv.fourmiId] = ni;
-        }
-        _etapesDijkstra.push_back(mouvements);
-        tousArives = true;
-        for (int f = 1; f <= nbF; f++)
-            if (posVirtuelle[f] != longueur - 1) { tousArives = false; break; }
-        if ((int)_etapesDijkstra.size() > nbF * longueur * 2) break;
+
+        if (!mouvements.empty())
+            _etapesDijkstra.push_back(mouvements);
+
+        // Tous arrives ?
+        bool fini = true;
+        for (int id = 1; id <= N; id++)
+            if (posIdx[id] < L - 1) { fini = false; break; }
+        if (fini) break;
     }
 }
 
@@ -256,9 +274,9 @@ sf::Color Visualiseur::couleurFourmi(int id) const {
     return PALETTE[(id - 1) % NB_COULEURS];
 }
 
-// ==================
-//  Dessiner tunnels  
-// ==================
+// ============================================================
+//  Dessiner tunnels
+// ============================================================
 void Visualiseur::dessinerTunnels() {
     const auto& chemin = _resDijkstra.chemin;
     for (const auto& kv : _fm->getSalles()) {
@@ -360,12 +378,6 @@ void Visualiseur::dessinerFourmis() {
 
 // ============================================================
 //  dessinerPanneau
-//  ① Titre + fourmis + mode
-//  ② DFS  : nb chemins + liste
-//  ③ Dijkstra : chemin optimal + distance
-//  ④ Temps Sv→Sd en secondes (= nbTours)
-//  ⑤ Étape animation + mouvements
-//  ⑥ Contrôles
 // ============================================================
 void Visualiseur::dessinerPanneau() {
     float px = _largeur * 0.74f, py = 14.f;
@@ -404,7 +416,7 @@ void Visualiseur::dessinerPanneau() {
     py += 4.f;
     sep("== DFS (" + to_string((int)_cheminsDFS.size()) + " chemin(s)) ==");
 
-    int affMax = min((int)_cheminsDFS.size(), 6); // max 6 chemins affichés
+    int affMax = min((int)_cheminsDFS.size(), 6);
     for (int ci = 0; ci < affMax; ci++) {
         const auto& ch = _cheminsDFS[ci];
         string ligne = to_string(ci+1) + ") ";
@@ -442,7 +454,6 @@ void Visualiseur::dessinerPanneau() {
             txt("  " + ch.substr(0, mid+2), px, py, 13, sf::Color(255,240,180)); py += 15.f;
             txt("  " + ch.substr(mid+2),    px, py, 13, sf::Color(255,240,180)); py += 15.f;
         }
-        // Distance
         const string& nomD = _fm->getDortoir()->getNom();
         auto it = _resDijkstra.distances.find(nomD);
         if (it != _resDijkstra.distances.end() && it->second != INT_MAX)
@@ -455,10 +466,10 @@ void Visualiseur::dessinerPanneau() {
         txt("  Aucun chemin Sv -> Sd", px, py, 13, sf::Color(255,100,100)); py += 18.f;
     }
 
-    // == ④ Temps Sv→Sd ========================================
+    // == ④ Temps Sv->Sd =======================================
     py += 4.f;
     sep("== Temps de Sv a Sd ==");
-    txt("  " + to_string(_tempsSimSec) + " seconde(s)  (" + to_string(_tempsSimSec) + " tours)",
+    txt("  " + to_string((int)_etapesDijkstra.size()) + " tour(s)",
         px, py, 16, sf::Color(80,230,130)); py += 20.f;
     txt("  1 tour de pipeline = 1 s", px, py, 12, sf::Color(120,120,120)); py += 17.f;
 
@@ -478,7 +489,7 @@ void Visualiseur::dessinerPanneau() {
         }
     }
 
-    // == ⑥ Contrôles ==========================================
+    // == ⑥ Controles ==========================================
     py = _hauteur - 132.f;
     txt("== Controles ==",           px, py, 13, sf::Color(120,120,150)); py += 18.f;
     txt("TAB         : switch mode", px, py, 12, sf::Color(160,160,160)); py += 15.f;

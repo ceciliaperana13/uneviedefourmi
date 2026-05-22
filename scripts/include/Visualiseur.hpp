@@ -1,19 +1,16 @@
 #pragma once
-
 #include <SFML/Graphics.hpp>
 #include <map>
 #include <vector>
 #include <string>
 #include "fourmiliere.hpp"
+#include "simulateur.hpp"
 #include "Dijkstra.hpp"
 #include "algo_deep_first.hpp"
-#include "simulateur.hpp"
 
 using namespace std;
 
-struct PositionSalle {
-    float x, y;
-};
+struct PositionSalle { float x, y; };
 
 enum class ModeAnimation { DIJKSTRA, DFS };
 
@@ -21,7 +18,6 @@ class Visualiseur {
 public:
     Visualiseur(unsigned int largeur = 1280, unsigned int hauteur = 800);
     ~Visualiseur() = default;
-
     void run(const vector<string>& cheminsFichiers);
 
 private:
@@ -50,14 +46,15 @@ private:
     sf::Font         _police;
     unsigned int     _largeur, _hauteur;
 
-    // Données
+    // Donnees
     Fourmiliere*               _fm;
-    ResultatDijkstra           _resDijkstra;       // chemin optimal + distances + nbTours
-    vector<vector<Salle*>>     _cheminsDFS;        // tous les chemins DFS
-    long long                  _tempsDfsUs  = 0;   // durée CPU DFS en µs
-    int                        _tempsSimSec = 0;   // nbTours = secondes Sv→Sd
+    ResultatDijkstra           _resDijkstra;
+    vector<vector<Salle*>>     _cheminsDFS;
+    long long                  _tempsDfsUs  = 0;
+    int                        _tempsSimSec = 0;
     map<string, PositionSalle> _positions;
 
+    // Etapes animation : DFS via Simulateur, Dijkstra via _deplacerFourmis
     vector<vector<MouvementEtape>> _etapesDijkstra;
     vector<vector<MouvementEtape>> _etapesDFS;
     map<int, string>               _posFourmis;

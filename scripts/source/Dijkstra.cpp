@@ -8,10 +8,6 @@
 using namespace std;
 using namespace std::chrono;
 
-// ==============
-//  Constructeur
-// ==============
-
 AlgorithmeDijkstra::AlgorithmeDijkstra(const Fourmiliere* fourmiliere)
     : _fourmiliere(fourmiliere)
 {
@@ -19,52 +15,38 @@ AlgorithmeDijkstra::AlgorithmeDijkstra(const Fourmiliere* fourmiliere)
         throw invalid_argument("AlgorithmeDijkstra : pointeur fourmiliere nul");
 }
 
-// ====================================
-//  executer
-// ====================================
-
 ResultatDijkstra AlgorithmeDijkstra::executer() {
     ResultatDijkstra res = _dijkstra();
     res.nbTours = 0;
-
     res.chemin = _reconstruireChemin(
         res.predecesseurs,
         _fourmiliere->getVestibule(),
         _fourmiliere->getDortoir()
     );
-
     if (res.cheminTrouve)
         res.nbTours = _deplacerFourmis(res);
-
     return res;
 }
 
 // ============================================================
 //  _calculerPoids
-//  Retourne -1 si inaccessible, sinon le poids de la salle
+//  Sv et Sd : toujours accessibles (poids 1)
+//  Salle pleine (dispo <= 0) : inaccessible (-1)
+//  Sinon poids 1
 // ============================================================
-
 int AlgorithmeDijkstra::_calculerPoids(const Salle* voisin) const {
-    if (!voisin->peutAccueillir())
-        return -1;
+    if (voisin->estVestibule() || voisin->estDortoir())
+        return 1;
 
     int cap = voisin->getCapacite();
-
     if (cap == Salle::CAPACITE_ILLIMITEE)
         return 1;
 
-    if (cap == 1)
-        return 1;
+    int dispo = cap - voisin->getOccupants();
+    if (dispo <= 0) return -1;
 
-    int placeRestante = cap - voisin->getOccupants();
-    if (placeRestante <= 0) return -1;
-
-    return cap / placeRestante;
+    return 1;
 }
-
-// ==============================
-//  _dijkstra
-// ==============================
 
 namespace {
     struct NoeudFile {
@@ -83,7 +65,6 @@ ResultatDijkstra AlgorithmeDijkstra::_dijkstra() const {
     const map<string, Salle*>& salles = _fourmiliere->getSalles();
     Salle* depart  = _fourmiliere->getVestibule();
     Salle* arrivee = _fourmiliere->getDortoir();
-
     if (!depart || !arrivee) return res;
 
     auto debut = high_resolution_clock::now();
@@ -102,17 +83,12 @@ ResultatDijkstra AlgorithmeDijkstra::_dijkstra() const {
         visite[nom] = false;
 
     while (!file.empty()) {
-        NoeudFile courant = file.top();
-        file.pop();
-
+        NoeudFile courant = file.top(); file.pop();
         const string& nomCourant = courant.salle->getNom();
         if (visite[nomCourant]) continue;
         visite[nomCourant] = true;
 
-        if (courant.salle == arrivee) {
-            res.cheminTrouve = true;
-            break;
-        }
+        if (courant.salle == arrivee) { res.cheminTrouve = true; break; }
 
         for (Salle* voisin : courant.salle->getVoisins()) {
             const string& nomVoisin = voisin->getNom();
@@ -131,15 +107,9 @@ ResultatDijkstra AlgorithmeDijkstra::_dijkstra() const {
         }
     }
 
-    auto fin    = high_resolution_clock::now();
-    res.tempsUs = duration_cast<microseconds>(fin - debut).count();
-
+    res.tempsUs = duration_cast<microseconds>(high_resolution_clock::now() - debut).count();
     return res;
 }
-
-// ============================================================
-//  _reconstruireChemin
-// ============================================================
 
 vector<Salle*> AlgorithmeDijkstra::_reconstruireChemin(
     const map<string, string>& pred,
@@ -148,7 +118,6 @@ vector<Salle*> AlgorithmeDijkstra::_reconstruireChemin(
 {
     vector<Salle*> chemin;
     chemin.reserve(16);
-
     const map<string, Salle*>& salles = _fourmiliere->getSalles();
 
     string courant = arrivee->getNom();
@@ -156,47 +125,45 @@ vector<Salle*> AlgorithmeDijkstra::_reconstruireChemin(
         auto it = salles.find(courant);
         if (it == salles.end()) return {};
         chemin.push_back(it->second);
-
         auto itPred = pred.find(courant);
         if (itPred == pred.end() || itPred->second.empty()) break;
         courant = itPred->second;
     }
 
     reverse(chemin.begin(), chemin.end());
-
-    if (chemin.empty() || chemin.front() != depart)
-        return {};
-
+    if (chemin.empty() || chemin.front() != depart) return {};
     return chemin;
 }
 
 // ============================================================
 //  _deplacerFourmis
 //
-//  Principe pipeline :
-//  - Chaque fourmi encore à Sv reçoit un chemin calculé au
-//    moment où une place se libère sur le chemin optimal.
-//  - Les fourmis déjà en route suivent leur prochain pas
-//    sur leur chemin assigné.
-//  - On remplit les capacités en parallèle à chaque tour.
+//  Pipeline :
+//  - ep == -1 : fourmi encore a Sv, pas injectee
+//  - ep ==  1 : prochaine destination = chemin[1] (premiere apres Sv)
+//  - ep ==  k : prochaine destination = chemin[k]
+//  - ep >= longueur : fourmi arrivee a Sd
+//
+//  A chaque tour :
+//  1. Recalcule le chemin (les salles pleine peuvent bloquer)
+//  2. Les fourmis les plus avancees bougent en premier
+//  3. On injecte autant de nouvelles fourmis que possible
 // ============================================================
-
 int AlgorithmeDijkstra::_deplacerFourmis(ResultatDijkstra& resGlobal) const {
-    const vector<Fourmi*>& fourmis   = _fourmiliere->getFourmis();
-    Salle*                 vestibule = _fourmiliere->getVestibule();
-    Salle*                 dortoir   = _fourmiliere->getDortoir();
-    int                    nbFourmis = (int)fourmis.size();
-    int                    tour      = 0;
 
-    // Chemin assigné à chaque fourmi (vide = pas encore assigné)
-    map<int, vector<Salle*>> cheminParFourmi;
-    // Étape courante de chaque fourmi sur son chemin (index de la salle suivante)
+    const vector<Fourmi*>& fourmis = _fourmiliere->getFourmis();
+    Salle* vestibule = _fourmiliere->getVestibule();
+    Salle* dortoir   = _fourmiliere->getDortoir();
+
+    int nbFourmis = (int)fourmis.size();
+    int tour      = 0;
+
+    // ep = -1 : pas encore injectee ; ep = k : prochaine = chemin[k]
     map<int, int> etapeParFourmi;
+    for (Fourmi* f : fourmis)
+        etapeParFourmi[f->getId()] = -1;
 
-    for (Fourmi* f : fourmis) {
-        cheminParFourmi[f->getId()] = {};
-        etapeParFourmi [f->getId()] = 0;
-    }
+    vector<vector<MouvementEtape>> etapes;
 
     auto nbAuDortoir = [&]() {
         int n = 0;
@@ -205,101 +172,71 @@ int AlgorithmeDijkstra::_deplacerFourmis(ResultatDijkstra& resGlobal) const {
         return n;
     };
 
-    while (nbAuDortoir() < nbFourmis) {
+    vector<Salle*> chemin = resGlobal.chemin;
+    int securite = nbFourmis * (int)chemin.size() * 4 + 20;
+
+    while (nbAuDortoir() < nbFourmis && tour < securite) {
         tour++;
-        bool auMoinsUn = false;
 
-        cout << "  Tour " << tour << " : ";
-
-        // ── Recalcul Dijkstra sur l'état actuel ───────────────────────
-        // Sert à assigner un chemin aux fourmis encore à Sv
-        // ET à mettre à jour resGlobal avec le chemin courant optimal
+        // Recalcul chemin a chaque tour selon etat courant
         ResultatDijkstra resTour = _dijkstra();
-        vector<Salle*> cheminOptimal = _reconstruireChemin(
-            resTour.predecesseurs, vestibule, dortoir
-        );
-        if (!cheminOptimal.empty())
-            resGlobal.chemin = cheminOptimal;
+        vector<Salle*> nouveauChemin =
+            _reconstruireChemin(resTour.predecesseurs, vestibule, dortoir);
+        if (!nouveauChemin.empty())
+            chemin = nouveauChemin;
 
-        // ── Assigner un chemin aux fourmis à Sv sans chemin ───────────
-        for (Fourmi* f : fourmis) {
-            if (f->getSalleActuelle() != vestibule) continue;
-            if (!cheminParFourmi[f->getId()].empty()) continue;
+        if (chemin.empty()) break;
+        resGlobal.chemin = chemin;
+        int longueur = (int)chemin.size();
 
-            // Recalcul dédié depuis Sv pour cette fourmi
-            ResultatDijkstra rF = _dijkstra();
-            vector<Salle*> ch  = _reconstruireChemin(
-                rF.predecesseurs, vestibule, dortoir
-            );
-            if (!ch.empty()) {
-                cheminParFourmi[f->getId()] = ch;
-                etapeParFourmi [f->getId()] = 1; // prochain pas = index 1
-            }
-        }
-
-        // ── Phase 1 : planification (fin -> début pour libérer d'abord)
-        // On trie les fourmis par position décroissante sur leur chemin
-        // pour que celles qui sont le plus avancées bougent en premier
-        // et libèrent leurs places avant celles qui sont derrière.
+        // Les plus avancees bougent en premier pour liberer les places
         vector<Fourmi*> ordre(fourmis.begin(), fourmis.end());
         sort(ordre.begin(), ordre.end(), [&](Fourmi* a, Fourmi* b) {
             return etapeParFourmi[a->getId()] > etapeParFourmi[b->getId()];
         });
 
+        vector<MouvementEtape> mouvementsTour;
+        bool auMoinsUn = false;
+
         for (Fourmi* f : ordre) {
             if (f->getSalleActuelle() == dortoir) continue;
 
-            vector<Salle*>& ch = cheminParFourmi[f->getId()];
-            int&            ep = etapeParFourmi [f->getId()];
+            int& ep = etapeParFourmi[f->getId()];
 
-            if (ch.empty() || ep >= (int)ch.size()) continue;
-
-            Salle* dest = ch[ep];
-
-            if (f->planifierDeplacement(dest)) {
-                cout << "f" << f->getId()
-                     << "(" << f->getSalleActuelle()->getNom()
-                     << "->" << dest->getNom() << ") ";
-                auMoinsUn = true;
-                ep++; // avancer l'index pour le prochain tour
-            } else {
-                // Destination pleine → recalculer un détour depuis la position actuelle
-                ResultatDijkstra rDetour = _dijkstra();
-                vector<Salle*> detour = _reconstruireChemin(
-                    rDetour.predecesseurs,
-                    f->getSalleActuelle(),
-                    dortoir
-                );
-                if (!detour.empty()) {
-                    ch = detour;
-                    ep = 1;
-                    // Retenter immédiatement
-                    if (f->planifierDeplacement(ch[0] == f->getSalleActuelle()
-                                                 ? ch[1] : ch[ep - 1])) {
-                        // on ne réessaie pas ici, sera tenté au prochain tour
-                    }
+            // Fourmi pas encore partie (toujours a Sv)
+            if (ep == -1) {
+                if (longueur < 2) continue;
+                Salle* dest = chemin[1];
+                if (f->planifierDeplacement(dest)) {
+                    mouvementsTour.push_back({ f->getId(), dest->getNom() });
+                    ep = 2; // apres commit elle sera en chemin[1], prochaine = chemin[2]
+                    auMoinsUn = true;
                 }
+                continue;
+            }
+
+            // Fourmi en route
+            if (ep >= longueur) continue;
+            Salle* dest = chemin[ep];
+            if (f->planifierDeplacement(dest)) {
+                mouvementsTour.push_back({ f->getId(), dest->getNom() });
+                ep++;
+                auMoinsUn = true;
             }
         }
 
-        // ── Phase 2 : commit ──────────────────────────────────────────
         for (Fourmi* f : fourmis)
             f->commitDeplacement();
 
-        cout << "\n";
+        if (!mouvementsTour.empty())
+            etapes.push_back(mouvementsTour);
 
-        if (!auMoinsUn) {
-            cout << "  [WARN] Aucun deplacement possible — simulation bloquee.\n";
-            break;
-        }
+        if (!auMoinsUn) break;
     }
 
+    resGlobal.etapes = etapes;
     return tour;
 }
-
-// ============================================================
-//  afficherResultat
-// ============================================================
 
 void AlgorithmeDijkstra::afficherResultat(const ResultatDijkstra& res) const {
     cout << "  ----------------------------------------\n";
