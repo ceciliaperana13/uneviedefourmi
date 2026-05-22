@@ -1,0 +1,12 @@
+En ajoutant des règles successives sur les capacités : 
+
+zéro :             3 => 2, MINIMUM ATTEINT  
+une : 7            DEJA MINIMUM   
+deux : 1           DEJA MINIMUM 
+trois : 7          DEJA MINIMUM 
+quatre :           14 => 10 !
+cinq :             29 => 18 !
+hormiguera :       9 => 9, peut etre déja au minimum, dur à dire 
+3D :               27 => BLOQUE, casse l'algorithme !!!!!!!!!!! => NOUVELLE REGLE SUR LES CHEMINS => 28 OK MERDE FAIT CHIER 
+                   => en autorisant des déplacements entre les chemins tant qu'ils ne reviennent pas en arrière => 21 !!
+salle d'attente :  89 => 22 !!!!!!!!!!!!!!!!!
