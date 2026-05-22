@@ -4,6 +4,7 @@
 #include <cmath>
 #include <chrono>
 #include <filesystem>
+#include <queue>
 
 using namespace std;
 using namespace std::chrono;
@@ -84,7 +85,7 @@ void Visualiseur::chargerFourmiliere(const string& chemin) {
         delete _fm; _fm = nullptr; return;
     }
 
-    // == 1. DFS : tous les chemins Sv->Sd ====================
+    // == 1. DFS ===============================================
     {
         auto t0 = high_resolution_clock::now();
         AlgoDeepFirst dfs;
@@ -93,7 +94,7 @@ void Visualiseur::chargerFourmiliere(const string& chemin) {
         _tempsDfsUs = duration_cast<microseconds>(t1 - t0).count();
     }
 
-    // == 2. Simulateur DFS : etapes pour l'animation =========
+    // == 2. Simulateur DFS ====================================
     {
         streambuf* oldBuf = cout.rdbuf(nullptr);
         Simulateur sim(*_fm);
@@ -102,7 +103,7 @@ void Visualiseur::chargerFourmiliere(const string& chemin) {
         _etapesDFS = sim.getEtapes();
     }
 
-    // == 3. Dijkstra : chemin optimal + etapes reelles =======
+    // == 3. Dijkstra ==========================================
     {
         streambuf* oldBuf = cout.rdbuf(nullptr);
         AlgorithmeDijkstra algo(_fm);
@@ -144,79 +145,148 @@ void Visualiseur::calculerPositions() {
 // ============================================================
 //  initialiserEtapesDijkstra
 //
-//  Simule le pipeline le long du chemin optimal Dijkstra
-//  en respectant les capacites des salles intermediaires.
-//
-//  Principe :
-//  - Toutes les fourmis debutent a Sv (chemin[0])
-//  - A chaque tour, on traite les fourmis les plus avancees
-//    en premier (elles liberent leur place pour les suivantes
-//    DANS LE MEME TOUR grace au occ[] mis a jour immediatement)
-//  - Une fourmi ne peut avancer que si la salle suivante
-//    a encore de la capacite disponible
+//  Pipeline multi-chemins avec enchainement garanti 
+ 
 // ============================================================
 void Visualiseur::initialiserEtapesDijkstra() {
     _etapesDijkstra.clear();
-    if (!_fm || _resDijkstra.chemin.empty()) return;
+    if (!_fm) return;
 
-    const auto& chemin = _resDijkstra.chemin;   // chemin[0]=Sv … chemin[L-1]=Sd
-    const int   L = (int)chemin.size();
-    const int   N = _fm->getNbFourmis();
-    if (L < 2 || N <= 0) return;
+    const auto& salles = _fm->getSalles();
+    const string nomSv = _fm->getVestibule()->getNom();
+    const string nomSd = _fm->getDortoir()->getNom();
+    const int N = _fm->getNbFourmis();
+    if (N <= 0) return;
 
-    // posIdx[id] : index courant dans chemin (0 = Sv, L-1 = Sd)
-    // Toutes les fourmis commencent en Sv = chemin[0]
-    vector<int> posIdx(N + 1, 0);
+    // ----------------------------------------------------------
+    // 1) BFS depuis Sd pour connaitre la distance de chaque
+    //    salle jusqu'a Sd (sans tenir compte des capacites).
+    //    Sert UNIQUEMENT a trier les fourmis : celles les plus
+    //    proches de Sd (distance faible) bougent en premier.
+    // ----------------------------------------------------------
+    map<string, int> distToSd;
+    {
+        queue<string> q;
+        q.push(nomSd);
+        distToSd[nomSd] = 0;
+        while (!q.empty()) {
+            string cur = q.front(); q.pop();
+            auto it = salles.find(cur);
+            if (it == salles.end()) continue;
+            for (const Salle* v : it->second->getVoisins()) {
+                const string& vn = v->getNom();
+                if (!distToSd.count(vn)) {
+                    distToSd[vn] = distToSd[cur] + 1;
+                    q.push(vn);
+                }
+            }
+        }
+    }
 
-    // Occupation effective de chaque salle du chemin
-    vector<int> occ(L, 0);
-    occ[0] = N;   // toutes les fourmis a Sv au depart
+    // ----------------------------------------------------------
+    // 2) Etat initial
+    // ----------------------------------------------------------
+    map<int, string> pos;               // fourmi id -> salle courante
+    map<string, int> occ;              // occupation en temps reel
+    for (const auto& kv : salles) occ[kv.first] = 0;
+    for (int id = 1; id <= N; id++) pos[id] = nomSv;
+    occ[nomSv] = N;
 
-    const int maxTours = (N + L) * 3 + 20;   // borne de securite
+    // ----------------------------------------------------------
+    // 3) nextStep : BFS depuis 'from' vers Sd en respectant occ
+    //    Retourne la prochaine salle a atteindre, "" si bloque.
+    //    Capture occ par reference -> voit les mises a jour
+    //    faites pendant le tour en cours.
+    // ----------------------------------------------------------
+    auto nextStep = [&](const string& from) -> string {
+        if (from == nomSd) return "";
 
-    for (int t = 0; t < maxTours; t++) {
+        // BFS
+        map<string, string> par;   // par[X] = salle d'ou on vient pour atteindre X
+        queue<string> q;
+        q.push(from);
+        par[from] = "";            // sentinelle : racine du BFS
+        bool found = false;
 
-        // Fourmis encore en route (pas encore a Sd)
-        vector<int> ordre;
-        for (int id = 1; id <= N; id++)
-            if (posIdx[id] < L - 1) ordre.push_back(id);
-        if (ordre.empty()) break;
+        while (!q.empty() && !found) {
+            string cur = q.front(); q.pop();
+            auto it = salles.find(cur);
+            if (it == salles.end()) continue;
 
-        // Les plus avancees bougent en premier :
-        // elles liberent leur place immediatement dans occ[],
-        // ce qui permet aux fourmis derriere d'entrer dans le meme tour.
-        sort(ordre.begin(), ordre.end(), [&](int a, int b) {
-            return posIdx[a] > posIdx[b];
-        });
+            for (const Salle* v : it->second->getVoisins()) {
+                const string& vn = v->getNom();
+                if (par.count(vn)) continue;   // deja visite
 
-        vector<MouvementEtape> mouvements;
+                // Verifier la capacite (sauf pour Sd, toujours accessible)
+                if (vn != nomSd) {
+                    int cap = v->getCapacite();
+                    if (cap != Salle::CAPACITE_ILLIMITEE) {
+                        int occupes = occ.count(vn) ? occ.at(vn) : 0;
+                        if (occupes >= cap) continue;   // pleine
+                    }
+                }
 
-        for (int id : ordre) {
-            int cur  = posIdx[id];
-            int next = cur + 1;
-            if (next >= L) continue;    // deja en Sd
-
-            int cap = chemin[next]->getCapacite();
-            bool placeLibre = (cap == Salle::CAPACITE_ILLIMITEE)
-                           || (occ[next] < cap);
-            if (!placeLibre) continue;
-
-            // Deplacement : liberation immediate de la place source
-            occ[cur]--;
-            occ[next]++;
-            posIdx[id] = next;
-
-            mouvements.push_back({ id, chemin[next]->getNom() });
+                par[vn] = cur;
+                if (vn == nomSd) { found = true; break; }
+                q.push(vn);
+            }
         }
 
-        if (!mouvements.empty())
-            _etapesDijkstra.push_back(mouvements);
+        if (!found) return "";
 
-        // Tous arrives ?
-        bool fini = true;
+        // Reconstruction du chemin de Sd vers 'from'
+        // puis inversion pour trouver le 1er pas apres 'from'
+        vector<string> path;
+        for (string c = nomSd; !c.empty(); c = par.at(c))
+            path.push_back(c);
+        // path = [Sd, ..., from] -> inverse = [from, ..., Sd]
+        reverse(path.begin(), path.end());
+        // path[0] = from, path[1] = premier pas
+        return (path.size() >= 2) ? path[1] : "";
+    };
+
+    // ----------------------------------------------------------
+    // 4) Boucle de simulation tour par tour
+    // ----------------------------------------------------------
+    int arrived  = 0;
+    const int maxTours = (N + (int)salles.size()) * 4 + 20;
+
+    for (int t = 0; t < maxTours && arrived < N; t++) {
+
+        
+        vector<int> ordre;
         for (int id = 1; id <= N; id++)
-            if (posIdx[id] < L - 1) { fini = false; break; }
-        if (fini) break;
+            if (pos[id] != nomSd) ordre.push_back(id);
+
+        
+        
+        sort(ordre.begin(), ordre.end(), [&](int a, int b) {
+            int da = distToSd.count(pos[a]) ? distToSd.at(pos[a]) : 99999;
+            int db = distToSd.count(pos[b]) ? distToSd.at(pos[b]) : 99999;
+            return da < db;   // croissant = plus proche de Sd en premier
+        });
+
+        vector<MouvementEtape> mvs;
+        bool anyMoved = false;
+
+        for (int id : ordre) {
+            // BFS dynamique : occ[] est mis a jour en temps reel
+            // donc nextStep voit les places liberees dans ce tour
+            string next = nextStep(pos[id]);
+            if (next.empty()) continue;
+
+            // Liberation immediate de la place source
+            occ[pos[id]]--;
+            occ[next]++;
+            pos[id] = next;
+
+            mvs.push_back({ id, next });
+            anyMoved = true;
+            if (next == nomSd) arrived++;
+        }
+
+        if (!mvs.empty()) _etapesDijkstra.push_back(mvs);
+        if (!anyMoved) break;   // deadlock reel, on arrete
     }
 }
 
@@ -398,21 +468,17 @@ void Visualiseur::dessinerPanneau() {
         txt(label, px, py, 14, col); py += 18.f;
     };
 
-    // == ① Titre ==============================================
     txt(nomFourmiliere(_indexFm), px, py, 17, sf::Color(255,210,50)); py += 24.f;
     if (_fm) {
-        txt("Fourmis : " + to_string(_fm->getNbFourmis()), px, py, 14,
-            sf::Color(180,220,180));
+        txt("Fourmis : " + to_string(_fm->getNbFourmis()), px, py, 14, sf::Color(180,220,180));
         py += 20.f;
     }
 
-    // Mode actif
     bool modeDFS = (_mode == ModeAnimation::DFS);
     txt(modeDFS ? "[ Mode : DFS ]" : "[ Mode : Dijkstra ]",
         px, py, 14, modeDFS ? sf::Color(100,220,255) : sf::Color(255,210,50));
     py += 20.f;
 
-    // == ② DFS ================================================
     py += 4.f;
     sep("== DFS (" + to_string((int)_cheminsDFS.size()) + " chemin(s)) ==");
 
@@ -435,7 +501,6 @@ void Visualiseur::dessinerPanneau() {
     txt("  CPU DFS : " + to_string(_tempsDfsUs) + " us",
         px, py, 12, sf::Color(120,120,120)); py += 17.f;
 
-    // == ③ Dijkstra ===========================================
     py += 4.f;
     sep("== Dijkstra (optimal) ==");
 
@@ -466,14 +531,12 @@ void Visualiseur::dessinerPanneau() {
         txt("  Aucun chemin Sv -> Sd", px, py, 13, sf::Color(255,100,100)); py += 18.f;
     }
 
-    // == ④ Temps Sv->Sd =======================================
     py += 4.f;
     sep("== Temps de Sv a Sd ==");
     txt("  " + to_string((int)_etapesDijkstra.size()) + " tour(s)",
         px, py, 16, sf::Color(80,230,130)); py += 20.f;
     txt("  1 tour de pipeline = 1 s", px, py, 12, sf::Color(120,120,120)); py += 17.f;
 
-    // == ⑤ Animation ==========================================
     py += 4.f;
     sep("== Animation ==");
     const auto& etapes = etapesActives();
@@ -489,7 +552,6 @@ void Visualiseur::dessinerPanneau() {
         }
     }
 
-    // == ⑥ Controles ==========================================
     py = _hauteur - 132.f;
     txt("== Controles ==",           px, py, 13, sf::Color(120,120,150)); py += 18.f;
     txt("TAB         : switch mode", px, py, 12, sf::Color(160,160,160)); py += 15.f;
