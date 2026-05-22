@@ -1,5 +1,4 @@
 #include "../include/fourmi.hpp"
-#include "../include/salle.hpp"
 
 // Toutes les fourmis démarrent dans le vestibule, sans destination prévue
 Fourmi::Fourmi(int id, Salle* salleDepart)
@@ -40,8 +39,8 @@ bool Fourmi::estAuDortoir() const {
 }
 
 // À appeler AVANT commitDeplacement — prochaineSalle sera nullptr après
-std::string Fourmi::formatDeplacement() const {
-    return "f" + std::to_string(id)
+string Fourmi::formatDeplacement() const {
+    return "f" + to_string(id)
         + " - " + salleActuelle->getNom()
         + " - " + prochaineSalle->getNom();
 }

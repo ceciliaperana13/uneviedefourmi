@@ -1,13 +1,5 @@
 #include "../include/Dijkstra.hpp"
 
-#include <queue>
-#include <algorithm>
-#include <iostream>
-#include <stdexcept>
-
-using namespace std;
-using namespace std::chrono;
-
 // ==============
 //  Constructeur
 // ==============

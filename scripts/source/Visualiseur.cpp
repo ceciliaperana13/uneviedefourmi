@@ -6,7 +6,7 @@
 #include <filesystem>
 
 using namespace std;
-using namespace std::chrono;
+using namespace chrono;
 
 static const sf::Color PALETTE[] = {
     {220,80,80},{80,180,80},{80,120,220},

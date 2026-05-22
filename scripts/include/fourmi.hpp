@@ -1,7 +1,8 @@
 #pragma once
+
 #include <string>
 
-class Salle;
+#include "salle.hpp"
 
 class Fourmi {
 public:
@@ -21,7 +22,7 @@ public:
 
     // Formate le mouvement pour l'affichage : "fN - origine - destination"
     // À appeler après commitDeplacement
-    std::string formatDeplacement() const;
+    string formatDeplacement() const;
 
     int    getId()             const;
     Salle* getSalleActuelle()  const;
