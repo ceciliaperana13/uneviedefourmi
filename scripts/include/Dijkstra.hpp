@@ -15,7 +15,7 @@ using namespace std;
 struct ResultatDijkstra {
     map<string, int>    distances;
     map<string, string> predecesseurs;
-    vector<Salle*>      chemin;
+    vector<Salle*>      chemin;       // chemin initial Sv -> Sd
     long long           tempsUs;
     int                 nbTours;
     bool                cheminTrouve;
@@ -42,8 +42,8 @@ private:
         Salle* depart,
         Salle* arrivee) const;
 
-    int  _calculerPoids   (const Salle* voisin) const;
-    int  _deplacerFourmis (ResultatDijkstra& res) const;
+    int _calculerPoids(const Salle* voisin) const;
+    int _deplacerFourmis(ResultatDijkstra& res) const;
 
     const Fourmiliere* _fourmiliere;
 };

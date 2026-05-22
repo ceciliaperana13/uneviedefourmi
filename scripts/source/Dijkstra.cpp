@@ -20,11 +20,10 @@ AlgorithmeDijkstra::AlgorithmeDijkstra(const Fourmiliere* fourmiliere)
 }
 
 // ====================================
-//  executer — point d'entrée public
+//  executer
 // ====================================
 
 ResultatDijkstra AlgorithmeDijkstra::executer() {
-    // Premier Dijkstra pour les stats (distances, chemin initial)
     ResultatDijkstra res = _dijkstra();
     res.nbTours = 0;
 
@@ -34,7 +33,7 @@ ResultatDijkstra AlgorithmeDijkstra::executer() {
         _fourmiliere->getDortoir()
     );
 
-    if (!res.chemin.empty())
+    if (res.cheminTrouve)
         res.nbTours = _deplacerFourmis(res);
 
     return res;
@@ -42,9 +41,7 @@ ResultatDijkstra AlgorithmeDijkstra::executer() {
 
 // ============================================================
 //  _calculerPoids
-//  -1  → salle inaccessible (pleine)
-//   1  → tunnel, dortoir, ou salle illimitée
-//  cap / place_restante → salle avec capacité réelle
+//  Retourne -1 si inaccessible, sinon le poids de la salle
 // ============================================================
 
 int AlgorithmeDijkstra::_calculerPoids(const Salle* voisin) const {
@@ -59,16 +56,14 @@ int AlgorithmeDijkstra::_calculerPoids(const Salle* voisin) const {
     if (cap == 1)
         return 1;
 
-    // place_restante = cap - occupants - reserves + partants
-    // peutAccueillir() garantit déjà que c'est > 0
     int placeRestante = cap - voisin->getOccupants();
     if (placeRestante <= 0) return -1;
 
-    return cap / placeRestante; // plus c'est plein, plus c'est cher
+    return cap / placeRestante;
 }
 
 // ==============================
-//  _dijkstra — algorithme pur
+//  _dijkstra
 // ==============================
 
 namespace {
@@ -99,9 +94,7 @@ ResultatDijkstra AlgorithmeDijkstra::_dijkstra() const {
     }
     res.distances[depart->getNom()] = 0;
 
-    priority_queue<NoeudFile,
-                   vector<NoeudFile>,
-                   greater<NoeudFile>> file;
+    priority_queue<NoeudFile, vector<NoeudFile>, greater<NoeudFile>> file;
     file.push({depart, 0});
 
     map<string, bool> visite;
@@ -127,7 +120,7 @@ ResultatDijkstra AlgorithmeDijkstra::_dijkstra() const {
             if (res.distances[nomCourant] == INT_MAX) continue;
 
             int poids = _calculerPoids(voisin);
-            if (poids == -1) continue; // salle pleine → on saute
+            if (poids == -1) continue;
 
             int nouvelleDist = res.distances[nomCourant] + poids;
             if (nouvelleDist < res.distances[nomVoisin]) {
@@ -180,17 +173,30 @@ vector<Salle*> AlgorithmeDijkstra::_reconstruireChemin(
 // ============================================================
 //  _deplacerFourmis
 //
-//  Recalcule Dijkstra à chaque tour pour adapter le chemin
-//  à l'état réel des salles (capacités remplies dynamiquement).
-//  Envoie en parallèle autant de fourmis que possible par étape.
+//  Principe pipeline :
+//  - Chaque fourmi encore à Sv reçoit un chemin calculé au
+//    moment où une place se libère sur le chemin optimal.
+//  - Les fourmis déjà en route suivent leur prochain pas
+//    sur leur chemin assigné.
+//  - On remplit les capacités en parallèle à chaque tour.
 // ============================================================
 
 int AlgorithmeDijkstra::_deplacerFourmis(ResultatDijkstra& resGlobal) const {
-    const vector<Fourmi*>& fourmis = _fourmiliere->getFourmis();
-    Salle* vestibule = _fourmiliere->getVestibule();
-    Salle* dortoir   = _fourmiliere->getDortoir();
-    int nbFourmis    = (int)fourmis.size();
-    int tour         = 0;
+    const vector<Fourmi*>& fourmis   = _fourmiliere->getFourmis();
+    Salle*                 vestibule = _fourmiliere->getVestibule();
+    Salle*                 dortoir   = _fourmiliere->getDortoir();
+    int                    nbFourmis = (int)fourmis.size();
+    int                    tour      = 0;
+
+    // Chemin assigné à chaque fourmi (vide = pas encore assigné)
+    map<int, vector<Salle*>> cheminParFourmi;
+    // Étape courante de chaque fourmi sur son chemin (index de la salle suivante)
+    map<int, int> etapeParFourmi;
+
+    for (Fourmi* f : fourmis) {
+        cheminParFourmi[f->getId()] = {};
+        etapeParFourmi [f->getId()] = 0;
+    }
 
     auto nbAuDortoir = [&]() {
         int n = 0;
@@ -205,39 +211,73 @@ int AlgorithmeDijkstra::_deplacerFourmis(ResultatDijkstra& resGlobal) const {
 
         cout << "  Tour " << tour << " : ";
 
-        // ── Recalcul Dijkstra selon l'état actuel des salles ──────────
+        // ── Recalcul Dijkstra sur l'état actuel ───────────────────────
+        // Sert à assigner un chemin aux fourmis encore à Sv
+        // ET à mettre à jour resGlobal avec le chemin courant optimal
         ResultatDijkstra resTour = _dijkstra();
-        vector<Salle*> chemin = _reconstruireChemin(
+        vector<Salle*> cheminOptimal = _reconstruireChemin(
             resTour.predecesseurs, vestibule, dortoir
         );
+        if (!cheminOptimal.empty())
+            resGlobal.chemin = cheminOptimal;
 
-        if (chemin.empty()) {
-            cout << "\n  [WARN] Plus aucun chemin accessible — simulation bloquee.\n";
-            break;
+        // ── Assigner un chemin aux fourmis à Sv sans chemin ───────────
+        for (Fourmi* f : fourmis) {
+            if (f->getSalleActuelle() != vestibule) continue;
+            if (!cheminParFourmi[f->getId()].empty()) continue;
+
+            // Recalcul dédié depuis Sv pour cette fourmi
+            ResultatDijkstra rF = _dijkstra();
+            vector<Salle*> ch  = _reconstruireChemin(
+                rF.predecesseurs, vestibule, dortoir
+            );
+            if (!ch.empty()) {
+                cheminParFourmi[f->getId()] = ch;
+                etapeParFourmi [f->getId()] = 1; // prochain pas = index 1
+            }
         }
 
-        // Met à jour le chemin dans le résultat global (dernier chemin utilisé)
-        resGlobal.chemin = chemin;
+        // ── Phase 1 : planification (fin -> début pour libérer d'abord)
+        // On trie les fourmis par position décroissante sur leur chemin
+        // pour que celles qui sont le plus avancées bougent en premier
+        // et libèrent leurs places avant celles qui sont derrière.
+        vector<Fourmi*> ordre(fourmis.begin(), fourmis.end());
+        sort(ordre.begin(), ordre.end(), [&](Fourmi* a, Fourmi* b) {
+            return etapeParFourmi[a->getId()] > etapeParFourmi[b->getId()];
+        });
 
-        // ── Phase 1 : planification (fin -> début du chemin) ──────────
-        // On itère de la fin vers le début pour libérer les places
-        // avant d'essayer d'y envoyer de nouvelles fourmis.
-        for (int etape = (int)chemin.size() - 1; etape >= 1; etape--) {
-            Salle* source = chemin[etape - 1];
-            Salle* dest   = chemin[etape];
+        for (Fourmi* f : ordre) {
+            if (f->getSalleActuelle() == dortoir) continue;
 
-            for (Fourmi* f : fourmis) {
-                if (f->getSalleActuelle() != source) continue;
+            vector<Salle*>& ch = cheminParFourmi[f->getId()];
+            int&            ep = etapeParFourmi [f->getId()];
 
-                // planifierDeplacement appelle dest->reserver()
-                // et vérifie peutAccueillir() (occupants - partants + reserves < cap)
-                // → plusieurs fourmis peuvent réserver la même salle
-                //   jusqu'à saturation de sa capacité
-                if (f->planifierDeplacement(dest)) {
-                    cout << "f" << f->getId()
-                         << "(" << source->getNom()
-                         << "->" << dest->getNom() << ") ";
-                    auMoinsUn = true;
+            if (ch.empty() || ep >= (int)ch.size()) continue;
+
+            Salle* dest = ch[ep];
+
+            if (f->planifierDeplacement(dest)) {
+                cout << "f" << f->getId()
+                     << "(" << f->getSalleActuelle()->getNom()
+                     << "->" << dest->getNom() << ") ";
+                auMoinsUn = true;
+                ep++; // avancer l'index pour le prochain tour
+            } else {
+                // Destination pleine → recalculer un détour depuis la position actuelle
+                ResultatDijkstra rDetour = _dijkstra();
+                vector<Salle*> detour = _reconstruireChemin(
+                    rDetour.predecesseurs,
+                    f->getSalleActuelle(),
+                    dortoir
+                );
+                if (!detour.empty()) {
+                    ch = detour;
+                    ep = 1;
+                    // Retenter immédiatement
+                    if (f->planifierDeplacement(ch[0] == f->getSalleActuelle()
+                                                 ? ch[1] : ch[ep - 1])) {
+                        // on ne réessaie pas ici, sera tenté au prochain tour
+                    }
                 }
             }
         }
