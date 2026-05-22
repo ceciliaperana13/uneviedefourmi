@@ -33,9 +33,9 @@ Visualiseur::Visualiseur(unsigned int largeur, unsigned int hauteur)
         if (_police.loadFromFile(p)) break;
 }
 
-// ============================================================
+// ===========
 //  run
-// ============================================================
+// ============
 void Visualiseur::run(const vector<string>& fichiers) {
     _fichiers = fichiers;
     _indexFm  = 0;
@@ -84,6 +84,7 @@ void Visualiseur::chargerFourmiliere(const string& chemin) {
         cerr << "Impossible de charger : " << chemin << "\n";
         delete _fm; _fm = nullptr; return;
     }
+    
 
     // == 1. DFS : tous les chemins Sv→Sd =====================
     {
@@ -255,9 +256,9 @@ sf::Color Visualiseur::couleurFourmi(int id) const {
     return PALETTE[(id - 1) % NB_COULEURS];
 }
 
-// ============================================================
-//  Dessiner tunnels  (jaune = chemin Dijkstra, gris = autre)
-// ============================================================
+// ==================
+//  Dessiner tunnels  
+// ==================
 void Visualiseur::dessinerTunnels() {
     const auto& chemin = _resDijkstra.chemin;
     for (const auto& kv : _fm->getSalles()) {
