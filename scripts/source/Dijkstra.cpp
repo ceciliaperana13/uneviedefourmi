@@ -24,6 +24,7 @@ AlgorithmeDijkstra::AlgorithmeDijkstra(const Fourmiliere* fourmiliere)
 // ====================================
 
 ResultatDijkstra AlgorithmeDijkstra::executer() {
+    // Premier Dijkstra pour les stats (distances, chemin initial)
     ResultatDijkstra res = _dijkstra();
     res.nbTours = 0;
 
@@ -34,9 +35,36 @@ ResultatDijkstra AlgorithmeDijkstra::executer() {
     );
 
     if (!res.chemin.empty())
-        res.nbTours = _deplacerFourmis(res.chemin);
+        res.nbTours = _deplacerFourmis(res);
 
     return res;
+}
+
+// ============================================================
+//  _calculerPoids
+//  -1  → salle inaccessible (pleine)
+//   1  → tunnel, dortoir, ou salle illimitée
+//  cap / place_restante → salle avec capacité réelle
+// ============================================================
+
+int AlgorithmeDijkstra::_calculerPoids(const Salle* voisin) const {
+    if (!voisin->peutAccueillir())
+        return -1;
+
+    int cap = voisin->getCapacite();
+
+    if (cap == Salle::CAPACITE_ILLIMITEE)
+        return 1;
+
+    if (cap == 1)
+        return 1;
+
+    // place_restante = cap - occupants - reserves + partants
+    // peutAccueillir() garantit déjà que c'est > 0
+    int placeRestante = cap - voisin->getOccupants();
+    if (placeRestante <= 0) return -1;
+
+    return cap / placeRestante; // plus c'est plein, plus c'est cher
 }
 
 // ==============================
@@ -92,16 +120,16 @@ ResultatDijkstra AlgorithmeDijkstra::_dijkstra() const {
             res.cheminTrouve = true;
             break;
         }
-        //poids pour tunelle 1 mais pour les salle on dois renmplir la capacité 
-
-        const int POIDS = 1;
 
         for (Salle* voisin : courant.salle->getVoisins()) {
             const string& nomVoisin = voisin->getNom();
             if (visite[nomVoisin]) continue;
             if (res.distances[nomCourant] == INT_MAX) continue;
 
-            int nouvelleDist = res.distances[nomCourant] + POIDS;
+            int poids = _calculerPoids(voisin);
+            if (poids == -1) continue; // salle pleine → on saute
+
+            int nouvelleDist = res.distances[nomCourant] + poids;
             if (nouvelleDist < res.distances[nomVoisin]) {
                 res.distances[nomVoisin]     = nouvelleDist;
                 res.predecesseurs[nomVoisin] = nomCourant;
@@ -152,15 +180,17 @@ vector<Salle*> AlgorithmeDijkstra::_reconstruireChemin(
 // ============================================================
 //  _deplacerFourmis
 //
-//  Simule le déplacement des fourmis tour par tour le long
-//  du chemin optimal trouvé par Dijkstra.
+//  Recalcule Dijkstra à chaque tour pour adapter le chemin
+//  à l'état réel des salles (capacités remplies dynamiquement).
+//  Envoie en parallèle autant de fourmis que possible par étape.
 // ============================================================
 
-int AlgorithmeDijkstra::_deplacerFourmis(const vector<Salle*>& chemin) const {
+int AlgorithmeDijkstra::_deplacerFourmis(ResultatDijkstra& resGlobal) const {
     const vector<Fourmi*>& fourmis = _fourmiliere->getFourmis();
-    Salle* dortoir = chemin.back();
-    int nbFourmis  = (int)fourmis.size();
-    int tour       = 0;
+    Salle* vestibule = _fourmiliere->getVestibule();
+    Salle* dortoir   = _fourmiliere->getDortoir();
+    int nbFourmis    = (int)fourmis.size();
+    int tour         = 0;
 
     auto nbAuDortoir = [&]() {
         int n = 0;
@@ -175,30 +205,49 @@ int AlgorithmeDijkstra::_deplacerFourmis(const vector<Salle*>& chemin) const {
 
         cout << "  Tour " << tour << " : ";
 
-        //  Phase 1 : planification (fin -> début du chemin) ----
+        // ── Recalcul Dijkstra selon l'état actuel des salles ──────────
+        ResultatDijkstra resTour = _dijkstra();
+        vector<Salle*> chemin = _reconstruireChemin(
+            resTour.predecesseurs, vestibule, dortoir
+        );
+
+        if (chemin.empty()) {
+            cout << "\n  [WARN] Plus aucun chemin accessible — simulation bloquee.\n";
+            break;
+        }
+
+        // Met à jour le chemin dans le résultat global (dernier chemin utilisé)
+        resGlobal.chemin = chemin;
+
+        // ── Phase 1 : planification (fin -> début du chemin) ──────────
+        // On itère de la fin vers le début pour libérer les places
+        // avant d'essayer d'y envoyer de nouvelles fourmis.
         for (int etape = (int)chemin.size() - 1; etape >= 1; etape--) {
             Salle* source = chemin[etape - 1];
             Salle* dest   = chemin[etape];
 
             for (Fourmi* f : fourmis) {
-                if (f->getSalleActuelle() == source) {
-                    if (f->planifierDeplacement(dest)) {
-                        cout << "f" << f->getId()
-                             << "(" << source->getNom()
-                             << "->" << dest->getNom() << ") ";
-                        auMoinsUn = true;
-                    }
+                if (f->getSalleActuelle() != source) continue;
+
+                // planifierDeplacement appelle dest->reserver()
+                // et vérifie peutAccueillir() (occupants - partants + reserves < cap)
+                // → plusieurs fourmis peuvent réserver la même salle
+                //   jusqu'à saturation de sa capacité
+                if (f->planifierDeplacement(dest)) {
+                    cout << "f" << f->getId()
+                         << "(" << source->getNom()
+                         << "->" << dest->getNom() << ") ";
+                    auMoinsUn = true;
                 }
             }
         }
 
-        //  Phase 2 : commit 
+        // ── Phase 2 : commit ──────────────────────────────────────────
         for (Fourmi* f : fourmis)
             f->commitDeplacement();
 
         cout << "\n";
 
-        // Sécurité : si rien n'a bougé, on est bloqué
         if (!auMoinsUn) {
             cout << "  [WARN] Aucun deplacement possible — simulation bloquee.\n";
             break;
@@ -221,7 +270,6 @@ void AlgorithmeDijkstra::afficherResultat(const ResultatDijkstra& res) const {
         return;
     }
 
-    // Chemin optimal
     cout << "  Chemin optimal : ";
     for (int i = 0; i < (int)res.chemin.size(); i++) {
         cout << res.chemin[i]->getNom();
@@ -229,13 +277,11 @@ void AlgorithmeDijkstra::afficherResultat(const ResultatDijkstra& res) const {
     }
     cout << "\n";
 
-    // Distance
     const string& nomDortoir = _fourmiliere->getDortoir()->getNom();
     auto it = res.distances.find(nomDortoir);
     if (it != res.distances.end() && it->second != INT_MAX)
-        cout << "  Distance       : " << it->second << " tunnel(s)\n";
+        cout << "  Distance       : " << it->second << " (poids cumule)\n";
 
-    // Distances depuis Sv
     cout << "  Distances depuis Sv :\n";
     for (const auto& [nom, dist] : res.distances) {
         cout << "    " << nom << " : ";
@@ -244,13 +290,9 @@ void AlgorithmeDijkstra::afficherResultat(const ResultatDijkstra& res) const {
         cout << "\n";
     }
 
-    // Nombre de tours
     cout << "  Tours simules  : " << res.nbTours << "\n";
-
-    // Temps d'exécution de l'algo pur
     cout << "  Temps algo     : " << res.tempsUs << " us\n";
 
-    // État final des fourmis
     cout << "  Fourmis (id -> salle finale) :\n";
     for (const Fourmi* f : _fourmiliere->getFourmis()) {
         cout << "    f" << f->getId()

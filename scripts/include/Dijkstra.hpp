@@ -12,22 +12,14 @@
 
 using namespace std;
 
-// ============================================================
-//  ResultatDijkstra
-// ============================================================
-
 struct ResultatDijkstra {
-    map<string, int>    distances;     // distance minimale par nom de salle
-    map<string, string> predecesseurs; // nom -> nom prédécesseur
-    vector<Salle*>      chemin;        // chemin Sv -> Sd 
-    long long           tempsUs;       // durée de l'algo en microsecondes
-    int                 nbTours;       // nombre de tours pour tout déplacer
+    map<string, int>    distances;
+    map<string, string> predecesseurs;
+    vector<Salle*>      chemin;
+    long long           tempsUs;
+    int                 nbTours;
     bool                cheminTrouve;
 };
-
-// ============================================================
-//  AlgorithmeDijkstra
-// ============================================================
 
 class AlgorithmeDijkstra {
 public:
@@ -50,8 +42,8 @@ private:
         Salle* depart,
         Salle* arrivee) const;
 
-    // Simule les fourmis étape par étape le long du chemin
-    int _deplacerFourmis(const vector<Salle*>& chemin) const;
+    int  _calculerPoids   (const Salle* voisin) const;
+    int  _deplacerFourmis (ResultatDijkstra& res) const;
 
-    const Fourmiliere* _fourmiliere; // non-owning
+    const Fourmiliere* _fourmiliere;
 };
