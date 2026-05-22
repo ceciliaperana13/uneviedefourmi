@@ -39,8 +39,8 @@ bool Fourmi::estAuDortoir() const {
 }
 
 // À appeler AVANT commitDeplacement — prochaineSalle sera nullptr après
-std::string Fourmi::formatDeplacement() const {
-    return "f" + std::to_string(id)
+string Fourmi::formatDeplacement() const {
+    return "f" + to_string(id)
         + " - " + salleActuelle->getNom()
         + " - " + prochaineSalle->getNom();
 }

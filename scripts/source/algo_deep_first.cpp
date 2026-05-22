@@ -3,22 +3,22 @@
 // Point d'entrée public.
 // Calcule d'abord les distances BFS depuis Sd, puis lance le DFS filtré,
 // puis trie les résultats par longueur croissante.
-std::vector<std::vector<Salle*>> AlgoDeepFirst::trouverTousLesChemins(const Fourmiliere& fourmiliere) {
-    std::vector<std::vector<Salle*>> resultats;
-    std::vector<Salle*>              cheminCourant;
+vector<vector<Salle*>> AlgoDeepFirst::trouverTousLesChemins(const Fourmiliere& fourmiliere) {
+    vector<vector<Salle*>> resultats;
+    vector<Salle*>              cheminCourant;
 
     Salle* depart      = fourmiliere.getVestibule();
     Salle* destination = fourmiliere.getDortoir();
 
-    std::map<std::string, int> distancesVersSd = calculerDistancesVersSd(fourmiliere);
+    map<string, int> distancesVersSd = calculerDistancesVersSd(fourmiliere);
 
     cheminCourant.push_back(depart);
     explorer(depart, depart, destination, cheminCourant, resultats, distancesVersSd);
 
     // Tri par longueur : les fourmis assignées aux chemins courts avancent plus vite,
     // ce qui maximise le débit global du pipeline
-    std::sort(resultats.begin(), resultats.end(),
-        [](const std::vector<Salle*>& a, const std::vector<Salle*>& b) {
+    sort(resultats.begin(), resultats.end(),
+        [](const vector<Salle*>& a, const vector<Salle*>& b) {
             return a.size() < b.size();
         });
 
@@ -27,9 +27,9 @@ std::vector<std::vector<Salle*>> AlgoDeepFirst::trouverTousLesChemins(const Four
 
 // BFS depuis Sd sur le graphe non orienté.
 // La distance obtenue est le nombre minimal de tunnels pour atteindre Sd.
-std::map<std::string, int> AlgoDeepFirst::calculerDistancesVersSd(const Fourmiliere& fourmiliere) {
-    std::map<std::string, int> distances;
-    const std::map<std::string, Salle*>& salles = fourmiliere.getSalles();
+map<string, int> AlgoDeepFirst::calculerDistancesVersSd(const Fourmiliere& fourmiliere) {
+    map<string, int> distances;
+    const map<string, Salle*>& salles = fourmiliere.getSalles();
 
     for (const auto& kv : salles)
         distances[kv.first] = INT_MAX;
@@ -37,7 +37,7 @@ std::map<std::string, int> AlgoDeepFirst::calculerDistancesVersSd(const Fourmili
     Salle* sd = fourmiliere.getDortoir();
     distances[sd->getNom()] = 0;
 
-    std::queue<Salle*> file;
+    queue<Salle*> file;
     file.push(sd);
 
     while (!file.empty()) {
@@ -69,9 +69,9 @@ void AlgoDeepFirst::explorer(
     Salle*                            courante,
     Salle*                            depart,
     Salle*                            destination,
-    std::vector<Salle*>&              cheminCourant,
-    std::vector<std::vector<Salle*>>& resultats,
-    const std::map<std::string, int>& distancesVersSd)
+    vector<Salle*>&              cheminCourant,
+    vector<vector<Salle*>>& resultats,
+    const map<string, int>& distancesVersSd)
 {
     if (courante == destination) {
         resultats.push_back(cheminCourant);
@@ -81,7 +81,7 @@ void AlgoDeepFirst::explorer(
     int distanceCourante = distancesVersSd.at(courante->getNom());
 
     for (Salle* voisin : courante->getVoisins()) {
-        bool dejaVisite = std::find(cheminCourant.begin(), cheminCourant.end(), voisin)
+        bool dejaVisite = find(cheminCourant.begin(), cheminCourant.end(), voisin)
                           != cheminCourant.end();
         if (dejaVisite) continue;
 

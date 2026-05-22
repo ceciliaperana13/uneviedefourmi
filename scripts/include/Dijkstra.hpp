@@ -16,7 +16,7 @@
 #include "fourmiliere.hpp"
 
 using namespace std;
-using namespace std::chrono;
+using namespace chrono;
 
 // ============================================================
 //  ResultatDijkstra

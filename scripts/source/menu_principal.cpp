@@ -1,73 +1,73 @@
 #include "../include/menu_principal.hpp"
 
-MenuPrincipal::MenuPrincipal(const std::string& dossierFourmilieres)
+MenuPrincipal::MenuPrincipal(const string& dossierFourmilieres)
     : _fichiers(listerFichiersTxt(dossierFourmilieres))
 {
     if (_fichiers.empty())
-        std::cerr << "[WARN] Aucun fichier .txt trouve dans : " << dossierFourmilieres << "\n";
+        cerr << "[WARN] Aucun fichier .txt trouve dans : " << dossierFourmilieres << "\n";
 }
 
 void MenuPrincipal::run() {
     int choix = -1;
     while (choix != 0) {
         afficherMenu();
-        if (!(std::cin >> choix)) {
-            std::cin.clear();
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            std::cout << "[ERREUR] Entree invalide.\n";
+        if (!(cin >> choix)) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "[ERREUR] Entree invalide.\n";
             continue;
         }
         switch (choix) {
             case 1:  lancerDeepFirst();               break;
             case 2:  lancerDijkstra();                break;
             case 3:  lancerVisualiseur();             break;
-            case 0:  std::cout << "Au revoir !\n";   break;
-            default: std::cout << "[ERREUR] Choix invalide.\n"; break;
+            case 0:  cout << "Au revoir !\n";   break;
+            default: cout << "[ERREUR] Choix invalide.\n"; break;
         }
     }
 }
 
 void MenuPrincipal::afficherMenu() const {
-    std::cout << "\n";
-    std::cout << "+----------------------------------------------+\n";
-    std::cout << "|        SIMULATION DE FOURMILIERES            |\n";
-    std::cout << "+----------------------------------------------+\n";
-    std::cout << "|  1  -  Deep First + Round Robin Nelson       |\n";
-    std::cout << "|  2  -  Dijkstra                              |\n";
-    std::cout << "|  3  -  Visualiseur graphique                 |\n";
-    std::cout << "|  0  -  Quitter                               |\n";
-    std::cout << "+----------------------------------------------+\n";
-    std::cout << "Votre choix : ";
+    cout << "\n";
+    cout << "+----------------------------------------------+\n";
+    cout << "|        SIMULATION DE FOURMILIERES            |\n";
+    cout << "+----------------------------------------------+\n";
+    cout << "|  1  -  Deep First + Round Robin Nelson       |\n";
+    cout << "|  2  -  Dijkstra                              |\n";
+    cout << "|  3  -  Visualiseur graphique                 |\n";
+    cout << "|  0  -  Quitter                               |\n";
+    cout << "+----------------------------------------------+\n";
+    cout << "Votre choix : ";
 }
 
-std::string MenuPrincipal::choisirFourmiliere() const {
+string MenuPrincipal::choisirFourmiliere() const {
     if (_fichiers.empty()) {
-        std::cout << "[ERREUR] Aucune fourmiliere disponible.\n";
+        cout << "[ERREUR] Aucune fourmiliere disponible.\n";
         return "";
     }
 
-    std::cout << "\nChoisissez une fourmiliere :\n";
+    cout << "\nChoisissez une fourmiliere :\n";
     for (int i = 0; i < (int)_fichiers.size(); i++)
-        std::cout << "  " << i << " - " << nomAffichable(_fichiers[i]) << "\n";
-    std::cout << "Votre choix : ";
+        cout << "  " << i << " - " << nomAffichable(_fichiers[i]) << "\n";
+    cout << "Votre choix : ";
 
     int choix = -1;
-    std::cin >> choix;
+    cin >> choix;
 
     if (choix < 0 || choix >= (int)_fichiers.size()) {
-        std::cout << "[ERREUR] Choix invalide.\n";
+        cout << "[ERREUR] Choix invalide.\n";
         return "";
     }
     return _fichiers[choix];
 }
 
 void MenuPrincipal::lancerDeepFirst() const {
-    std::string fichier = choisirFourmiliere();
+    string fichier = choisirFourmiliere();
     if (fichier.empty()) return;
 
     Fourmiliere fm;
     if (!fm.chargerDepuisFichier(fichier)) {
-        std::cerr << "[ERREUR] Impossible de charger " << fichier << "\n";
+        cerr << "[ERREUR] Impossible de charger " << fichier << "\n";
         return;
     }
     fm.afficher();
@@ -77,12 +77,12 @@ void MenuPrincipal::lancerDeepFirst() const {
 }
 
 void MenuPrincipal::lancerDijkstra() const {
-    std::string fichier = choisirFourmiliere();
+    string fichier = choisirFourmiliere();
     if (fichier.empty()) return;
 
     Fourmiliere fm;
     if (!fm.chargerDepuisFichier(fichier)) {
-        std::cerr << "[ERREUR] Impossible de charger " << fichier << "\n";
+        cerr << "[ERREUR] Impossible de charger " << fichier << "\n";
         return;
     }
     fm.afficher();
@@ -97,17 +97,17 @@ void MenuPrincipal::lancerVisualiseur() const {
     vis.run(_fichiers);
 }
 
-std::string MenuPrincipal::nomAffichable(const std::string& chemin) {
-    namespace fs = std::filesystem;
+string MenuPrincipal::nomAffichable(const string& chemin) {
+    namespace fs = filesystem;
     return fs::path(chemin).stem().string();
 }
 
-std::vector<std::string> MenuPrincipal::listerFichiersTxt(const std::string& dossier) {
-    std::vector<std::string> fichiers;
-    namespace fs = std::filesystem;
+vector<string> MenuPrincipal::listerFichiersTxt(const string& dossier) {
+    vector<string> fichiers;
+    namespace fs = filesystem;
 
     if (!fs::exists(dossier) || !fs::is_directory(dossier)) {
-        std::cerr << "[ERREUR] Dossier introuvable : " << dossier << "\n";
+        cerr << "[ERREUR] Dossier introuvable : " << dossier << "\n";
         return fichiers;
     }
 
@@ -116,6 +116,6 @@ std::vector<std::string> MenuPrincipal::listerFichiersTxt(const std::string& dos
             fichiers.push_back(entry.path().generic_string());
     }
 
-    std::sort(fichiers.begin(), fichiers.end());
+    sort(fichiers.begin(), fichiers.end());
     return fichiers;
 }
