@@ -1,14 +1,4 @@
 # SFML DLLs - chaque dev utilise les siennes (dépendent du compilateur)
 
-scripts/source/sfml-audio-2.dll
-scripts/source/sfml-audio-d-2.dll
-scripts/source/sfml-graphics-2.dll
-scripts/source/sfml-graphics-d-2.dll
-scripts/source/sfml-network-2.dll
-scripts/source/sfml-network-d-2.dll
-scripts/source/sfml-system-2.dll
-scripts/source/sfml-system-d-2.dll
-scripts/source/sfml-window-2.dll
-scripts/source/sfml-window-d-2.dll
-
+scripts/source/*.dll
 scripts/source/*.exe
