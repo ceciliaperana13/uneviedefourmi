@@ -9,7 +9,7 @@
 
 struct MouvementEtape {
     int         fourmiId;
-    std::string salleDest;
+    string salleDest;
 };
 
 class Simulateur {
@@ -17,26 +17,26 @@ public:
     Simulateur(const Fourmiliere& fourmiliere);
     void simuler();
 
-    const std::vector<std::vector<MouvementEtape>>& getEtapes() const;
+    const vector<vector<MouvementEtape>>& getEtapes() const;
 
 private:
     const Fourmiliere&                     fourmiliere;
-    std::vector<std::vector<Salle*>>       chemins;
-    std::map<Fourmi*, std::vector<Salle*>> assignation;
-    std::map<Fourmi*, int>                 positionSurChemin;
-    std::map<Fourmi*, bool>                aPlanifie;
+    vector<vector<Salle*>>       chemins;
+    map<Fourmi*, vector<Salle*>> assignation;
+    map<Fourmi*, int>                 positionSurChemin;
+    map<Fourmi*, bool>                aPlanifie;
     int                                    numeroEtape;
 
-    std::vector<std::vector<MouvementEtape>> _etapes;
+    vector<vector<MouvementEtape>> _etapes;
 
     // Débit = min des capacités des salles intermédiaires du chemin
     // Limite le nombre de fourmis pouvant avancer simultanément
-    int calculerDebit(const std::vector<Salle*>& chemin) const;
+    int calculerDebit(const vector<Salle*>& chemin) const;
 
     // Temps estimé pour écouler nbFourmis sur un chemin en pipeline :
     // (nb_tunnels - 1) + ceil(nbFourmis / debit)
     // Permet de comparer des chemins de longueurs et débits différents
-    int tempsEstime(int nbFourmis, const std::vector<Salle*>& chemin) const;
+    int tempsEstime(int nbFourmis, const vector<Salle*>& chemin) const;
 
     void assignerFourmisALeursChemins();
     void executerUneEtape(int& nbMouvements);

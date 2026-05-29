@@ -1,9 +1,4 @@
 #include "../include/lecteur_fichier_texte.hpp"
-#include <fstream>
-#include <iostream>
-#include <sstream>
-
-using namespace std;
 
 // Lit le fichier ligne par ligne et dispatch chaque ligne vers le bon parseur
 DonneesFourmiliere LecteurFichierTexte::lire(const string& chemin) {

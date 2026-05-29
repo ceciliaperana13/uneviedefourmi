@@ -12,22 +12,24 @@
 #include "fourmiliere.hpp"
 #include "simulateur.hpp"
 
+using namespace std;
+
 class MenuPrincipal {
 public:
-    explicit MenuPrincipal(const std::string& dossierFourmilieres);
+    explicit MenuPrincipal(const string& dossierFourmilieres);
     void run();
 
 private:
 
-    static std::string nomAffichable(const std::string& chemin);
-    std::vector<std::string> _fichiers;
+    static string nomAffichable(const string& chemin);
+    vector<string> _fichiers;
 
     void        afficherMenu()       const;
-    std::string choisirFourmiliere() const;
+    string choisirFourmiliere() const;
 
     void lancerDeepFirst()   const;
     void lancerDijkstra()    const;
     void lancerVisualiseur() const;
 
-    static std::vector<std::string> listerFichiersTxt(const std::string& dossier);
+    static vector<string> listerFichiersTxt(const string& dossier);
 };

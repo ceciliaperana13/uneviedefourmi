@@ -5,12 +5,18 @@
 #include <vector>
 #include <chrono>
 #include <climits>
+#include <queue>
+#include <algorithm>
+#include <iostream>
+#include <stdexcept>
+
 
 #include "salle.hpp"
 #include "fourmi.hpp"
 #include "fourmiliere.hpp"
 
 using namespace std;
+using namespace chrono;
 
 // ============================================================
 //  ResultatDijkstra
